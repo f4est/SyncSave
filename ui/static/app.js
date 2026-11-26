@@ -527,6 +527,8 @@ window.rollbackVersion = async (ver) => {
 window.closeModals = () => {
   document.getElementById("modalAddGame").classList.add("hidden");
   document.getElementById("modalSettings").classList.add("hidden");
+  document.getElementById("modalShare").classList.add("hidden");
+  document.getElementById("modalJoin").classList.add("hidden");
 };
 
 function openAddGameModal(preselectPreset = null) {
@@ -590,8 +592,21 @@ function openSettingsModal() {
   document.getElementById("setWebdavUser").value = c.webdav?.username || "";
   document.getElementById("setWebdavPass").value = c.webdav?.password || "";
   document.getElementById("setWebdavBasePath").value = c.webdav?.base_path || "SyncSave";
+  document.getElementById("setS3Endpoint").value = c.s3?.endpoint || "";
+  document.getElementById("setS3Region").value = c.s3?.region || "auto";
+  document.getElementById("setS3Bucket").value = c.s3?.bucket || "";
+  document.getElementById("setS3Prefix").value = c.s3?.prefix || "";
+  document.getElementById("setS3Access").value = c.s3?.access_key || "";
+  document.getElementById("setS3Secret").value = c.s3?.secret_key || "";
+  document.getElementById("setGitRepo").value = c.git?.repo_url || "";
+  document.getElementById("setGitBranch").value = c.git?.branch || "main";
+  document.getElementById("setLanHost").checked = !!c.lan?.host_enabled;
+  document.getElementById("setLanPort").value = c.lan?.port || 47821;
+  document.getElementById("setLanPin").value = c.lan?.room_pin || "";
+  document.getElementById("setLanPeer").value = c.lan?.peer_url || "";
   document.getElementById("setCustomPullCmd").value = c.custom_sync?.pull_cmd || "";
   document.getElementById("setCustomPushCmd").value = c.custom_sync?.push_cmd || "";
+  refreshLanIps();
   document.getElementById("setTheme").value = c.theme || "dark";
   document.getElementById("setLanguage").value = c.language || "ru";
   document.getElementById("setAutostart").checked = !!c.autostart;
@@ -614,8 +629,23 @@ function toggleBackendBoxes() {
   const v = document.getElementById("setBackend").value;
   document.getElementById("gdriveSettingsBox").classList.toggle("hidden", v !== "gdrive");
   document.getElementById("webdavSettingsBox").classList.toggle("hidden", v !== "webdav");
+  document.getElementById("s3SettingsBox").classList.toggle("hidden", v !== "s3");
+  document.getElementById("gitSettingsBox").classList.toggle("hidden", v !== "git");
+  document.getElementById("lanSettingsBox").classList.toggle("hidden", v !== "lan");
   document.getElementById("localSettingsBox").classList.toggle("hidden", v !== "local");
   document.getElementById("customSettingsBox").classList.toggle("hidden", v !== "custom");
+}
+
+async function refreshLanIps() {
+  try {
+    const info = await api("/api/lan/info");
+    const el = document.getElementById("lanIpsHint");
+    if (info.ips && info.ips.length > 0) {
+      el.textContent = "Ваши адреса для друзей: " + info.ips.map((ip) => `http://${ip}:${info.port}`).join(" • ");
+    } else {
+      el.textContent = `Порт: ${info.port}`;
+    }
+  } catch (_) {}
 }
 
 window.fillWebDAVPreset = (kind) => {
@@ -637,6 +667,58 @@ document.getElementById("sidebarSearch").oninput = (e) => {
 };
 document.getElementById("btnAddGame").onclick = () => openAddGameModal(null);
 document.getElementById("btnEmptyAdd").onclick = () => openAddGameModal(null);
+document.getElementById("btnJoinCode").onclick = () => {
+  document.getElementById("joinCodeInput").value = "";
+  document.getElementById("joinLocalPath").value = "";
+  document.getElementById("modalJoin").classList.remove("hidden");
+};
+document.getElementById("btnBrowseJoinPath").onclick = async () => {
+  const res = await api("/api/browse-folder", "POST");
+  if (res.path) document.getElementById("joinLocalPath").value = res.path;
+};
+document.getElementById("btnConfirmJoin").onclick = async () => {
+  const code = document.getElementById("joinCodeInput").value.trim();
+  const local_path = document.getElementById("joinLocalPath").value.trim();
+  if (!code) {
+    toast("Вставьте код приглашения", true);
+    return;
+  }
+  try {
+    const g = await api("/api/join", "POST", { code, local_path });
+    state.selectedGameId = g.id;
+    state.viewMode = "detail";
+    document.getElementById("btnNavHome").classList.remove("active");
+    closeModals();
+    await loadConfig();
+    await refreshAllStatuses();
+    toast(`Вы присоединились к миру "${g.name}"!`);
+  } catch (e) {
+    toast(e.message, true);
+  }
+};
+
+async function generateShareCode() {
+  const id = state.selectedGameId;
+  if (!id) return;
+  const include_secrets = document.getElementById("chkShareSecrets").checked;
+  const res = await api(`/api/games/${encodeURIComponent(id)}/share`, "POST", { include_secrets });
+  document.getElementById("shareCodeText").value = res.code;
+}
+
+document.getElementById("btnShareWorld").onclick = async () => {
+  try {
+    await generateShareCode();
+    document.getElementById("modalShare").classList.remove("hidden");
+  } catch (e) {
+    toast(e.message, true);
+  }
+};
+document.getElementById("chkShareSecrets").onchange = generateShareCode;
+document.getElementById("btnCopyShareCode").onclick = async () => {
+  const txt = document.getElementById("shareCodeText").value;
+  await navigator.clipboard.writeText(txt);
+  toast("Код приглашения скопирован! Отправьте его другу.");
+};
 document.getElementById("btnSettings").onclick = openSettingsModal;
 document.getElementById("btnEmptySettings").onclick = openSettingsModal;
 document.getElementById("setBackend").onchange = toggleBackendBoxes;
@@ -771,6 +853,18 @@ document.getElementById("btnSaveSettings").onclick = async () => {
       webdav_username: document.getElementById("setWebdavUser").value.trim(),
       webdav_password: document.getElementById("setWebdavPass").value,
       webdav_base_path: document.getElementById("setWebdavBasePath").value.trim(),
+      s3_endpoint: document.getElementById("setS3Endpoint").value.trim(),
+      s3_region: document.getElementById("setS3Region").value.trim(),
+      s3_bucket: document.getElementById("setS3Bucket").value.trim(),
+      s3_prefix: document.getElementById("setS3Prefix").value.trim(),
+      s3_access_key: document.getElementById("setS3Access").value.trim(),
+      s3_secret_key: document.getElementById("setS3Secret").value,
+      git_repo_url: document.getElementById("setGitRepo").value.trim(),
+      git_branch: document.getElementById("setGitBranch").value.trim(),
+      lan_host_enabled: document.getElementById("setLanHost").checked,
+      lan_port: parseInt(document.getElementById("setLanPort").value, 10) || 47821,
+      lan_room_pin: document.getElementById("setLanPin").value.trim(),
+      lan_peer_url: document.getElementById("setLanPeer").value.trim(),
       custom_pull_cmd: document.getElementById("setCustomPullCmd").value.trim(),
       custom_push_cmd: document.getElementById("setCustomPushCmd").value.trim(),
       minimize_to_tray: document.getElementById("setMinimizeToTray").checked,

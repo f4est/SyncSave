@@ -98,6 +98,15 @@ func (e *Engine) Backend() storage.Backend {
 		return storage.NewLocalBackend(snap.LocalSyncDir)
 	case config.BackendWebDAV:
 		return storage.NewWebDAVBackend(snap.WebDAV.URL, snap.WebDAV.Username, snap.WebDAV.Password, snap.WebDAV.BasePath)
+	case config.BackendS3:
+		return storage.NewS3Backend(snap.S3.Endpoint, snap.S3.Region, snap.S3.Bucket, snap.S3.AccessKey, snap.S3.SecretKey, snap.S3.Prefix)
+	case config.BackendGit:
+		return storage.NewGitBackend(snap.Git.RepoURL, snap.Git.Branch, filepath.Join(config.AppDataDir(), "GitSyncRepo"))
+	case config.BackendLAN:
+		if snap.LAN.HostEnabled && snap.LAN.PeerURL == "" {
+			return storage.NewLocalBackend(snap.LocalSyncDir)
+		}
+		return storage.NewLANBackend(snap.LAN.PeerURL, snap.LAN.RoomPIN)
 	case config.BackendCustom:
 		return storage.NewCustomCmdBackend(snap.LocalSyncDir, snap.CustomSync.PullCmd, snap.CustomSync.PushCmd)
 	default:

@@ -35,6 +35,9 @@
           </svg>
           <span id="playerNameLabel">Player</span>
         </div>
+        <button id="btnJoinCode" class="btn btn-primary btn-sm" title="Присоединиться к миру друга по коду">
+          🔗 Войти по коду
+        </button>
         <button id="btnRefreshAll" class="btn btn-ghost btn-sm" title="Обновить статусы">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
@@ -166,6 +169,7 @@
                 </svg>
                 Скачать (Pull)
               </button>
+              <button id="btnShareWorld" class="btn btn-secondary btn-sm" title="Получить код приглашения для друга">Поделиться</button>
               <button id="btnRemoveGame" class="btn btn-danger-ghost btn-sm" title="Удалить профиль игры">Удалить</button>
             </div>
           </section>
@@ -333,8 +337,11 @@
             <select id="setBackend" class="input">
               <option value="gdrive">Google Drive API (Общая папка онлайн)</option>
               <option value="webdav">WebDAV (Яндекс.Диск, Nextcloud, OwnCloud, NAS)</option>
-              <option value="local">Локальная / Синхронизируемая папка (Google Drive Desktop / OneDrive / LAN)</option>
-              <option value="custom">Своя команда / CLI (Rclone, Git, Rsync, скрипт)</option>
+              <option value="s3">S3 / Cloudflare R2 / MinIO / Backblaze B2</option>
+              <option value="git">Git-репозиторий (Приватный GitHub / GitLab / Gitea)</option>
+              <option value="lan">LAN / Radmin VPN / ZeroTier / Tailscale (Прямая сеть)</option>
+              <option value="local">Локальная / Синхронизируемая папка (Google Drive Desktop / OneDrive)</option>
+              <option value="custom">Своя команда / CLI (Rclone, Rsync, скрипт)</option>
             </select>
           </div>
 
@@ -416,6 +423,78 @@
             </div>
           </div>
 
+          <div id="s3SettingsBox" class="sub-card hidden">
+            <div class="sub-card-title"><span>S3 / Cloudflare R2 / MinIO</span></div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label class="field-label">Endpoint URL</label>
+                <input id="setS3Endpoint" type="text" class="input" placeholder="https://xxx.r2.cloudflarestorage.com" />
+              </div>
+              <div class="form-group">
+                <label class="field-label">Region</label>
+                <input id="setS3Region" type="text" class="input" placeholder="auto" />
+              </div>
+            </div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label class="field-label">Bucket</label>
+                <input id="setS3Bucket" type="text" class="input" placeholder="syncsave" />
+              </div>
+              <div class="form-group">
+                <label class="field-label">Префикс папки</label>
+                <input id="setS3Prefix" type="text" class="input" placeholder="worlds" />
+              </div>
+            </div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label class="field-label">Access Key ID</label>
+                <input id="setS3Access" type="text" class="input" />
+              </div>
+              <div class="form-group">
+                <label class="field-label">Secret Access Key</label>
+                <input id="setS3Secret" type="password" class="input" />
+              </div>
+            </div>
+          </div>
+
+          <div id="gitSettingsBox" class="sub-card hidden">
+            <div class="sub-card-title"><span>Приватный Git-репозиторий</span></div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label class="field-label">URL репозитория (HTTPS или SSH)</label>
+                <input id="setGitRepo" type="text" class="input" placeholder="https://github.com/user/my-saves.git" />
+              </div>
+              <div class="form-group">
+                <label class="field-label">Ветка</label>
+                <input id="setGitBranch" type="text" class="input" placeholder="main" />
+              </div>
+            </div>
+            <div class="muted">Создайте приватный репозиторий на GitHub и добавьте друзей в Collaborators — сохранения передаются даже когда хост офлайн.</div>
+          </div>
+
+          <div id="lanSettingsBox" class="sub-card hidden">
+            <div class="sub-card-title"><span>LAN / Radmin VPN / ZeroTier / Tailscale</span></div>
+            <label class="switch-row" style="margin-bottom:10px">
+              <input type="checkbox" id="setLanHost" />
+              <span>Включить встроенный сервер раздачи на этом ПК (я хост)</span>
+            </label>
+            <div id="lanIpsHint" class="muted" style="margin-bottom:10px"></div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label class="field-label">Порт сервера</label>
+                <input id="setLanPort" type="number" class="input" placeholder="47821" />
+              </div>
+              <div class="form-group">
+                <label class="field-label">PIN-код комнаты (необязательно)</label>
+                <input id="setLanPin" type="text" class="input" placeholder="1234" />
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="field-label">Адрес хоста (для друзей, которые подключаются к хосту; оставьте пустым на главном ПК)</label>
+              <input id="setLanPeer" type="text" class="input" placeholder="http://26.10.20.30:47821" />
+            </div>
+          </div>
+
           <div id="customSettingsBox" class="sub-card hidden">
             <div class="sub-card-title">
               <span>Своя команда (Rclone / Git / Rsync / скрипт)</span>
@@ -469,6 +548,57 @@
       <div class="modal-footer">
         <button class="btn btn-ghost" onclick="closeModals()">Отмена</button>
         <button id="btnSaveSettings" class="btn btn-primary">Сохранить настройки</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Share World Modal -->
+  <div id="modalShare" class="modal hidden">
+    <div class="modal-backdrop" onclick="closeModals()"></div>
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3>Поделиться миром с другом</h3>
+        <button class="close-btn" onclick="closeModals()">✕</button>
+      </div>
+      <div class="modal-body">
+        <p class="muted" style="margin-top:0">Отправьте этот код другу в Discord/Telegram. Друг нажмёт <b>«🔗 Войти по коду»</b>, вставит код — и мир подключится автоматически.</p>
+        <label class="switch-row" style="margin-bottom:10px">
+          <input type="checkbox" id="chkShareSecrets" />
+          <span>Включить в код логин/пароль/PIN от хранилища (если используете WebDAV / S3 / LAN PIN)</span>
+        </label>
+        <textarea id="shareCodeText" class="input" rows="4" readonly style="font-family:Consolas,monospace;font-size:12px;resize:none"></textarea>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="closeModals()">Закрыть</button>
+        <button id="btnCopyShareCode" class="btn btn-primary">Скопировать код</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Join by Code Modal -->
+  <div id="modalJoin" class="modal hidden">
+    <div class="modal-backdrop" onclick="closeModals()"></div>
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3>Присоединиться к миру друга</h3>
+        <button class="close-btn" onclick="closeModals()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="field-label">Вставьте код приглашения (<code>SYNCSAVE://...</code>)</label>
+          <textarea id="joinCodeInput" class="input" rows="3" placeholder="SYNCSAVE://eyJnYW1lX25hbWUi..." style="font-family:Consolas,monospace;font-size:12px"></textarea>
+        </div>
+        <div class="form-group">
+          <label class="field-label">Локальная папка сохранений (оставьте пустым — определится автоматически)</label>
+          <div class="input-row">
+            <input id="joinLocalPath" type="text" class="input" placeholder="Автоопределение по игре..." />
+            <button id="btnBrowseJoinPath" class="btn btn-secondary btn-sm" type="button">Обзор...</button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="closeModals()">Отмена</button>
+        <button id="btnConfirmJoin" class="btn btn-primary">Присоединиться</button>
       </div>
     </div>
   </div>

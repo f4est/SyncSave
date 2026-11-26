@@ -14,9 +14,36 @@ type BackendType string
 const (
 	BackendGDrive BackendType = "gdrive"
 	BackendWebDAV BackendType = "webdav"
+	BackendS3     BackendType = "s3"
+	BackendGit    BackendType = "git"
+	BackendLAN    BackendType = "lan"
 	BackendLocal  BackendType = "local"
 	BackendCustom BackendType = "custom"
 )
+
+// S3Config holds S3-compatible object storage settings (Cloudflare R2, MinIO, Backblaze B2).
+type S3Config struct {
+	Endpoint  string `json:"endpoint"`
+	Region    string `json:"region"`
+	Bucket    string `json:"bucket"`
+	AccessKey string `json:"access_key"`
+	SecretKey string `json:"secret_key"`
+	Prefix    string `json:"prefix"`
+}
+
+// GitConfig holds private Git repository settings (GitHub, GitLab, Gitea).
+type GitConfig struct {
+	RepoURL string `json:"repo_url"`
+	Branch  string `json:"branch"`
+}
+
+// LANConfig holds direct LAN / Radmin VPN / ZeroTier / Tailscale sync settings.
+type LANConfig struct {
+	HostEnabled bool   `json:"host_enabled"`
+	Port        int    `json:"port"`
+	PeerURL     string `json:"peer_url"`
+	RoomPIN     string `json:"room_pin"`
+}
 
 // WebDAVConfig holds WebDAV server settings (Yandex.Disk, Nextcloud, NAS, etc.).
 type WebDAVConfig struct {
@@ -70,6 +97,9 @@ type AppConfig struct {
 	LocalSyncDir       string           `json:"local_sync_dir"`
 	GDrive             GDriveConfig     `json:"gdrive"`
 	WebDAV             WebDAVConfig     `json:"webdav"`
+	S3                 S3Config         `json:"s3"`
+	Git                GitConfig        `json:"git"`
+	LAN                LANConfig        `json:"lan"`
 	CustomSync         CustomSyncConfig `json:"custom_sync"`
 	MinimizeToTray     bool          `json:"minimize_to_tray"`
 	StartMinimized     bool          `json:"start_minimized"`
@@ -120,6 +150,12 @@ func DefaultConfig() *AppConfig {
 		GDrive: GDriveConfig{
 			FolderID: "1LfiBTS0x4vHFJJi9dK1H64Bj5zi5md8X",
 		},
+		LAN: LANConfig{
+			Port: 47821,
+		},
+		Git: GitConfig{
+			Branch: "main",
+		},
 		MinimizeToTray:     true,
 		StartMinimized:     false,
 		Autostart:          false,
@@ -167,6 +203,12 @@ func Load() (*AppConfig, error) {
 	if cfg.DefaultKeepBackups < 1 {
 		cfg.DefaultKeepBackups = 5
 	}
+	if cfg.LAN.Port <= 0 {
+		cfg.LAN.Port = 47821
+	}
+	if cfg.Git.Branch == "" {
+		cfg.Git.Branch = "main"
+	}
 	return cfg, nil
 }
 
@@ -207,6 +249,9 @@ func (c *AppConfig) Snapshot() *AppConfig {
 		LocalSyncDir:       c.LocalSyncDir,
 		GDrive:             c.GDrive,
 		WebDAV:             c.WebDAV,
+		S3:                 c.S3,
+		Git:                c.Git,
+		LAN:                c.LAN,
 		CustomSync:         c.CustomSync,
 		MinimizeToTray:     c.MinimizeToTray,
 		StartMinimized:     c.StartMinimized,

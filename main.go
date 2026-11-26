@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"crypto/rand"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -21,6 +22,7 @@ import (
 
 	"syncsave/internal/config"
 	"syncsave/internal/dialog"
+	"syncsave/internal/lan"
 	"syncsave/internal/presets"
 	"syncsave/internal/storage"
 	"syncsave/internal/syncer"
@@ -53,6 +55,8 @@ func main() {
 
 	gdrive := storage.NewGDriveBackend(cfg)
 	engine := syncer.NewEngine(cfg, gdrive, nil)
+	lanMgr := lan.NewManager(cfg)
+	lanMgr.SyncState()
 	if loadErr != nil {
 		engine.AddLog("warn", "", loadErr.Error())
 	} else {
@@ -73,7 +77,7 @@ func main() {
 	port := ln.Addr().(*net.TCPAddr).Port
 	baseURL := fmt.Sprintf("http://127.0.0.1:%d", port)
 
-	mux := buildMux(cfg, gdrive, engine)
+	mux := buildMux(cfg, gdrive, engine, lanMgr)
 	srv := &http.Server{Handler: mux}
 	go func() {
 		_ = srv.Serve(ln)
@@ -196,7 +200,7 @@ func main() {
 	<-quitCh
 }
 
-func buildMux(cfg *config.AppConfig, gdrive *storage.GDriveBackend, engine *syncer.Engine) *http.ServeMux {
+func buildMux(cfg *config.AppConfig, gdrive *storage.GDriveBackend, engine *syncer.Engine, lanMgr *lan.Manager) *http.ServeMux {
 	mux := http.NewServeMux()
 
 	staticFS, _ := fs.Sub(ui.Static, "static")
@@ -241,6 +245,18 @@ func buildMux(cfg *config.AppConfig, gdrive *storage.GDriveBackend, engine *sync
 				WebDAVUsername     string `json:"webdav_username"`
 				WebDAVPassword     string `json:"webdav_password"`
 				WebDAVBasePath     string `json:"webdav_base_path"`
+				S3Endpoint         string `json:"s3_endpoint"`
+				S3Region           string `json:"s3_region"`
+				S3Bucket           string `json:"s3_bucket"`
+				S3AccessKey        string `json:"s3_access_key"`
+				S3SecretKey        string `json:"s3_secret_key"`
+				S3Prefix           string `json:"s3_prefix"`
+				GitRepoURL         string `json:"git_repo_url"`
+				GitBranch          string `json:"git_branch"`
+				LANHostEnabled     bool   `json:"lan_host_enabled"`
+				LANPort            int    `json:"lan_port"`
+				LANPeerURL         string `json:"lan_peer_url"`
+				LANRoomPIN         string `json:"lan_room_pin"`
 				CustomPullCmd      string `json:"custom_pull_cmd"`
 				CustomPushCmd      string `json:"custom_push_cmd"`
 			}
@@ -267,6 +283,12 @@ func buildMux(cfg *config.AppConfig, gdrive *storage.GDriveBackend, engine *sync
 					c.Backend = config.BackendLocal
 				case string(config.BackendWebDAV):
 					c.Backend = config.BackendWebDAV
+				case string(config.BackendS3):
+					c.Backend = config.BackendS3
+				case string(config.BackendGit):
+					c.Backend = config.BackendGit
+				case string(config.BackendLAN):
+					c.Backend = config.BackendLAN
 				case string(config.BackendCustom):
 					c.Backend = config.BackendCustom
 				default:
@@ -299,6 +321,22 @@ func buildMux(cfg *config.AppConfig, gdrive *storage.GDriveBackend, engine *sync
 				c.WebDAV.Username = req.WebDAVUsername
 				c.WebDAV.Password = req.WebDAVPassword
 				c.WebDAV.BasePath = req.WebDAVBasePath
+				c.S3.Endpoint = req.S3Endpoint
+				c.S3.Region = req.S3Region
+				c.S3.Bucket = req.S3Bucket
+				c.S3.AccessKey = req.S3AccessKey
+				c.S3.SecretKey = req.S3SecretKey
+				c.S3.Prefix = req.S3Prefix
+				c.Git.RepoURL = req.GitRepoURL
+				if req.GitBranch != "" {
+					c.Git.Branch = req.GitBranch
+				}
+				c.LAN.HostEnabled = req.LANHostEnabled
+				if req.LANPort > 0 {
+					c.LAN.Port = req.LANPort
+				}
+				c.LAN.PeerURL = req.LANPeerURL
+				c.LAN.RoomPIN = req.LANRoomPIN
 				c.CustomSync.PullCmd = req.CustomPullCmd
 				c.CustomSync.PushCmd = req.CustomPushCmd
 			})
@@ -306,6 +344,7 @@ func buildMux(cfg *config.AppConfig, gdrive *storage.GDriveBackend, engine *sync
 				writeErr(w, http.StatusInternalServerError, err.Error())
 				return
 			}
+			lanMgr.SyncState()
 			writeJSON(w, http.StatusOK, cfg.Snapshot())
 		default:
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
@@ -334,10 +373,161 @@ func buildMux(cfg *config.AppConfig, gdrive *storage.GDriveBackend, engine *sync
 			label = "Локальная папка: Готово"
 		case "webdav":
 			label = "WebDAV: Подключено"
+		case "s3":
+			label = "S3 / R2: Подключено"
+		case "git":
+			label = "Git: Подключено"
+		case "lan":
+			label = "LAN / VPN: Подключено"
 		case "custom":
 			label = "Своя команда: Готово"
 		}
 		writeJSON(w, http.StatusOK, map[string]string{"label": label})
+	})
+
+	mux.HandleFunc("/api/lan/info", func(w http.ResponseWriter, _ *http.Request) {
+		snap := cfg.Snapshot()
+		writeJSON(w, http.StatusOK, map[string]any{
+			"host_enabled": snap.LAN.HostEnabled,
+			"port":         snap.LAN.Port,
+			"ips":          lan.LocalIPs(),
+		})
+	})
+
+	mux.HandleFunc("/api/join", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		var req struct {
+			Code      string `json:"code"`
+			LocalPath string `json:"local_path"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeErr(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		rawCode := strings.TrimSpace(req.Code)
+		rawCode = strings.TrimPrefix(rawCode, "SYNCSAVE://")
+		decoded, err := base64.RawURLEncoding.DecodeString(rawCode)
+		if err != nil {
+			decoded, err = base64.StdEncoding.DecodeString(rawCode)
+			if err != nil {
+				writeErr(w, http.StatusBadRequest, "некорректный код приглашения")
+				return
+			}
+		}
+		var inv struct {
+			GameName     string `json:"game_name"`
+			PresetID     string `json:"preset_id,omitempty"`
+			SteamAppID   string `json:"steam_app_id,omitempty"`
+			CoverURL     string `json:"cover_url,omitempty"`
+			RemoteFolder string `json:"remote_folder"`
+			Backend      string `json:"backend"`
+			FolderID     string `json:"folder_id,omitempty"`
+			WebDAVURL    string `json:"webdav_url,omitempty"`
+			WebDAVBase   string `json:"webdav_base,omitempty"`
+			WebDAVUser   string `json:"webdav_user,omitempty"`
+			WebDAVPass   string `json:"webdav_pass,omitempty"`
+			S3Endpoint   string `json:"s3_endpoint,omitempty"`
+			S3Region     string `json:"s3_region,omitempty"`
+			S3Bucket     string `json:"s3_bucket,omitempty"`
+			S3Prefix     string `json:"s3_prefix,omitempty"`
+			S3Access     string `json:"s3_access,omitempty"`
+			S3Secret     string `json:"s3_secret,omitempty"`
+			GitRepo      string `json:"git_repo,omitempty"`
+			GitBranch    string `json:"git_branch,omitempty"`
+			LANPeerURL   string `json:"lan_peer_url,omitempty"`
+			LANPin       string `json:"lan_pin,omitempty"`
+		}
+		if err := json.Unmarshal(decoded, &inv); err != nil || inv.RemoteFolder == "" || inv.GameName == "" {
+			writeErr(w, http.StatusBadRequest, "не удалось прочитать данные приглашения")
+			return
+		}
+
+		localPath := strings.TrimSpace(req.LocalPath)
+		if localPath == "" {
+			for _, p := range presets.BuiltinPresets() {
+				if (inv.PresetID != "" && p.ID == inv.PresetID) || strings.EqualFold(p.Name, inv.GameName) {
+					if p.DetectedPath != "" {
+						localPath = p.DetectedPath
+					}
+					if inv.CoverURL == "" {
+						inv.CoverURL = p.CoverURL
+					}
+					if inv.SteamAppID == "" {
+						inv.SteamAppID = p.SteamAppID
+					}
+					break
+				}
+			}
+		}
+		if localPath == "" {
+			localPath = filepath.Join(config.AppDataDir(), "Saves", inv.RemoteFolder)
+		}
+
+		_ = cfg.Update(func(c *config.AppConfig) {
+			if inv.Backend != "" {
+				c.Backend = config.BackendType(inv.Backend)
+			}
+			if inv.FolderID != "" {
+				c.GDrive.FolderID = inv.FolderID
+			}
+			if inv.WebDAVURL != "" {
+				c.WebDAV.URL = inv.WebDAVURL
+				c.WebDAV.BasePath = inv.WebDAVBase
+				if inv.WebDAVUser != "" {
+					c.WebDAV.Username = inv.WebDAVUser
+				}
+				if inv.WebDAVPass != "" {
+					c.WebDAV.Password = inv.WebDAVPass
+				}
+			}
+			if inv.S3Endpoint != "" {
+				c.S3.Endpoint = inv.S3Endpoint
+				c.S3.Region = inv.S3Region
+				c.S3.Bucket = inv.S3Bucket
+				c.S3.Prefix = inv.S3Prefix
+				if inv.S3Access != "" {
+					c.S3.AccessKey = inv.S3Access
+				}
+				if inv.S3Secret != "" {
+					c.S3.SecretKey = inv.S3Secret
+				}
+			}
+			if inv.GitRepo != "" {
+				c.Git.RepoURL = inv.GitRepo
+				if inv.GitBranch != "" {
+					c.Git.Branch = inv.GitBranch
+				}
+			}
+			if inv.LANPeerURL != "" {
+				c.LAN.PeerURL = inv.LANPeerURL
+				c.LAN.RoomPIN = inv.LANPin
+			}
+		})
+
+		idBytes := make([]byte, 6)
+		_, _ = rand.Read(idBytes)
+		g := config.GameProfile{
+			ID:           hex.EncodeToString(idBytes),
+			Name:         inv.GameName,
+			PresetID:     inv.PresetID,
+			SteamAppID:   inv.SteamAppID,
+			CoverURL:     inv.CoverURL,
+			LocalPath:    filepath.Clean(localPath),
+			RemoteFolder: inv.RemoteFolder,
+			AutoSync:     true,
+			KeepBackups:  cfg.Snapshot().DefaultKeepBackups,
+		}
+		if err := cfg.Update(func(c *config.AppConfig) {
+			c.Games = append(c.Games, g)
+		}); err != nil {
+			writeErr(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		engine.AddLog("success", g.Name, "Мир добавлен по коду приглашения!")
+		writeJSON(w, http.StatusOK, g)
 	})
 
 	mux.HandleFunc("/api/remote-worlds", func(w http.ResponseWriter, r *http.Request) {
@@ -529,6 +719,68 @@ func buildMux(cfg *config.AppConfig, gdrive *storage.GDriveBackend, engine *sync
 				return
 			}
 			writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
+
+		case action == "share" && r.Method == http.MethodPost:
+			var req struct {
+				IncludeSecrets bool `json:"include_secrets"`
+			}
+			_ = json.NewDecoder(r.Body).Decode(&req)
+			snap := cfg.Snapshot()
+			var found *config.GameProfile
+			for i := range snap.Games {
+				if snap.Games[i].ID == id {
+					found = &snap.Games[i]
+					break
+				}
+			}
+			if found == nil {
+				writeErr(w, http.StatusNotFound, "игра не найдена")
+				return
+			}
+			payload := map[string]string{
+				"game_name":     found.Name,
+				"preset_id":     found.PresetID,
+				"steam_app_id":  found.SteamAppID,
+				"cover_url":     found.CoverURL,
+				"remote_folder": found.RemoteFolder,
+				"backend":       string(snap.Backend),
+			}
+			switch snap.Backend {
+			case config.BackendGDrive:
+				payload["folder_id"] = snap.GDrive.FolderID
+			case config.BackendWebDAV:
+				payload["webdav_url"] = snap.WebDAV.URL
+				payload["webdav_base"] = snap.WebDAV.BasePath
+				if req.IncludeSecrets {
+					payload["webdav_user"] = snap.WebDAV.Username
+					payload["webdav_pass"] = snap.WebDAV.Password
+				}
+			case config.BackendS3:
+				payload["s3_endpoint"] = snap.S3.Endpoint
+				payload["s3_region"] = snap.S3.Region
+				payload["s3_bucket"] = snap.S3.Bucket
+				payload["s3_prefix"] = snap.S3.Prefix
+				if req.IncludeSecrets {
+					payload["s3_access"] = snap.S3.AccessKey
+					payload["s3_secret"] = snap.S3.SecretKey
+				}
+			case config.BackendGit:
+				payload["git_repo"] = snap.Git.RepoURL
+				payload["git_branch"] = snap.Git.Branch
+			case config.BackendLAN:
+				ips := lan.LocalIPs()
+				peer := snap.LAN.PeerURL
+				if snap.LAN.HostEnabled && len(ips) > 0 {
+					peer = fmt.Sprintf("http://%s:%d", ips[0], snap.LAN.Port)
+				}
+				payload["lan_peer_url"] = peer
+				if req.IncludeSecrets {
+					payload["lan_pin"] = snap.LAN.RoomPIN
+				}
+			}
+			raw, _ := json.Marshal(payload)
+			code := "SYNCSAVE://" + base64.RawURLEncoding.EncodeToString(raw)
+			writeJSON(w, http.StatusOK, map[string]string{"code": code})
 
 		default:
 			http.NotFound(w, r)
