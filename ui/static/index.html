@@ -59,6 +59,9 @@
           </svg>
           <span data-i18n="refresh">Обновить</span>
         </button>
+        <button id="btnHelp" class="btn btn-ghost btn-sm" title="Обучение, способы синхронизации и частые вопросы">
+          ❓ Помощь
+        </button>
         <button id="btnSettings" class="btn btn-secondary btn-sm">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
@@ -643,6 +646,143 @@
       <div id="historyModalList" class="modal-body" style="display:flex;flex-direction:column;gap:8px"></div>
       <div class="modal-footer">
         <button class="btn btn-secondary" onclick="closeModals()">Закрыть</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Help, Tutorial & FAQ Modal -->
+  <div id="modalHelp" class="modal hidden">
+    <div class="modal-backdrop" onclick="closeModals()"></div>
+    <div class="modal-dialog modal-lg">
+      <div class="modal-header">
+        <h3>❓ Помощь, Обучение и FAQ</h3>
+        <button class="close-btn" onclick="closeModals()">✕</button>
+      </div>
+      <div class="tabs-bar">
+        <button class="tab-btn help-tab-btn active" data-htab="htabGuide">Быстрый старт</button>
+        <button class="tab-btn help-tab-btn" data-htab="htabBackends">Способы синхронизации</button>
+        <button class="tab-btn help-tab-btn" data-htab="htabFaq">Частые вопросы (FAQ)</button>
+      </div>
+      <div class="modal-body">
+        <!-- Help Tab 1: Interactive Quick Start -->
+        <div id="htabGuide" class="help-pane">
+          <div class="guide-steps">
+            <div class="guide-step">
+              <div class="step-num">1</div>
+              <div>
+                <div class="step-title">Выберите общее хранилище (один раз)</div>
+                <div class="muted">Откройте <b>Настройки → Облако</b>. Чтобы файлы реально передавались друзьям, выберите <b>Google Drive API</b>, <b>WebDAV (Яндекс.Диск)</b>, <b>Git</b>, <b>S3</b>, <b>LAN Sync</b> или укажите в «Локальной папке» реальную папку <b>Google Диска для ПК</b> (например <code>G:\Мой диск\SyncSave</code>).</div>
+                <button class="btn btn-secondary btn-xs" style="margin-top:6px" onclick="closeModals(); openSettingsModal(); document.querySelector('[data-tab=tabCloud]').click();">Открыть Настройки облака</button>
+              </div>
+            </div>
+            <div class="guide-step">
+              <div class="step-num">2</div>
+              <div>
+                <div class="step-title">Добавьте игру из библиотеки</div>
+                <div class="muted">На вкладке <b>Главная</b> нажмите на карточку игры (путь к сохранениям определится сам) и задайте имя общего мира, например <code>Valheim_Squad</code>.</div>
+              </div>
+            </div>
+            <div class="guide-step">
+              <div class="step-num">3</div>
+              <div>
+                <div class="step-title">Пригласите друга в 1 клик</div>
+                <div class="muted">Нажмите <b>Поделиться</b> на странице игры и отправьте код <code>SYNCSAVE://...</code> другу. Друг нажимает <b>«🔗 Войти по коду»</b>, вставляет код — и мир готов!</div>
+              </div>
+            </div>
+            <div class="guide-step">
+              <div class="step-num">4</div>
+              <div>
+                <div class="step-title">Правило кооп-игры (чтобы не терять прогресс)</div>
+                <div class="muted">Перед запуском игры: нажмите <b>Скачать (Pull)</b> и <b>Взять хост</b>. После выхода из игры: нажмите <b>Загрузить (Push)</b> (или дождитесь авто-синхронизации) и <b>Освободить хост</b>.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Help Tab 2: Backends Comparison -->
+        <div id="htabBackends" class="help-pane hidden">
+          <table class="ver-table">
+            <thead>
+              <tr>
+                <th>Способ</th>
+                <th>Работает если 2-й ПК выключен?</th>
+                <th>Сложность</th>
+                <th>Для кого лучше</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><b>Google Диск для ПК</b><br><span class="muted">(режим Локальная папка → G:\...)</span></td>
+                <td>✅ Да</td>
+                <td>Очень просто</td>
+                <td>Для тех, кто не хочет настраивать API</td>
+              </tr>
+              <tr>
+                <td><b>Google Drive API</b></td>
+                <td>✅ Да</td>
+                <td>Средняя (2 мин)</td>
+                <td>Прямая работа без доп. программ</td>
+              </tr>
+              <tr>
+                <td><b>WebDAV (Яндекс.Диск / Nextcloud)</b></td>
+                <td>✅ Да</td>
+                <td>Просто</td>
+                <td>Если есть Яндекс.Диск или свой NAS</td>
+              </tr>
+              <tr>
+                <td><b>Git (GitHub / GitLab)</b></td>
+                <td>✅ Да</td>
+                <td>Средняя</td>
+                <td>Бесплатно и с историей в приватном репо</td>
+              </tr>
+              <tr>
+                <td><b>S3 / Cloudflare R2</b></td>
+                <td>✅ Да</td>
+                <td>Средняя</td>
+                <td>Быстрая загрузка больших миров (10 ГБ бесплатно)</td>
+              </tr>
+              <tr>
+                <td><b>LAN / Radmin VPN / ZeroTier</b></td>
+                <td>❌ Нужен включённый хост</td>
+                <td>Очень просто</td>
+                <td>Если играете вместе прямо сейчас по VPN/LAN</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Help Tab 3: FAQ -->
+        <div id="htabFaq" class="help-pane hidden">
+          <div class="faq-list">
+            <details class="faq-item" open>
+              <summary>Почему у друга не появляются мои сохранения / на Google Диске пусто?</summary>
+              <p>Если вверху написано <b>«Только локально (не в облаке)»</b>, значит выбран режим «Локальная папка» со стандартным путём <code>%APPDATA%\SyncSave\SharedSaves</code>. Эта папка никуда не отправляется! Укажите в Настройках путь к папке <b>Google Диска для ПК</b> (например <code>G:\Мой диск\SyncSave</code>) или выберите <b>Google Drive API / WebDAV / Git / LAN Sync</b>.</p>
+            </details>
+            <details class="faq-item">
+              <summary>Можно ли играть по очереди, если компьютер друга выключен?</summary>
+              <p>Да! Все облачные режимы (Google Drive, WebDAV, S3, Git) работают асинхронно: вы загрузили мир и выключили ПК, а друг скачал его через час или завтра.</p>
+            </details>
+            <details class="faq-item">
+              <summary>Что делать, если появилось предупреждение «Конфликт версий»?</summary>
+              <p>Это значит, что вы изменили локальное сохранение, но в облаке уже есть более новая версия от друга. Нажмите <b>Скачать принудительно</b> (чтобы взять версию друга; ваша старая версия перед этим автоматически сохранится в бэкап) или <b>Загрузить принудительно</b> (если ваша версия важнее).</p>
+            </details>
+            <details class="faq-item">
+              <summary>Где хранятся резервные копии и как откатить мир?</summary>
+              <p>Нажмите <b>🕒 История</b> на странице игры и выберите <b>Восстановить</b> на любой прошлой версии. Локальные страховочные бэкапы также лежат в <code>%APPDATA%\SyncSave\backups</code> (открывается из меню в трее).</p>
+            </details>
+            <details class="faq-item">
+              <summary>Как включить авто-приём изменений каждую минуту?</summary>
+              <p>Откройте <b>Настройки → Синхронизация</b>, включите <b>«Автоматически проверять облако и принимать изменения (Auto-Pull)»</b> и задайте интервал (по умолчанию 60 секунд).</p>
+            </details>
+            <details class="faq-item">
+              <summary>Сколько памяти ест программа в фоне?</summary>
+              <p>Когда окно открыто — около 100–140 МБ из-за движка WebView2. Когда вы закрываете окно в системный трей, интерфейс выгружается и срабатывает сжатие памяти — фоновый процесс занимает минимальный объём ОЗУ и ~0% ЦП.</p>
+            </details>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" onclick="closeModals()">Понятно</button>
       </div>
     </div>
   </div>

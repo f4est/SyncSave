@@ -254,7 +254,11 @@ async function checkBackendPill() {
   const text = document.getElementById("backendText");
   try {
     const res = await api("/api/backend/check");
-    badge.className = "pill ok";
+    if (res.label && res.label.includes("не в облаке")) {
+      badge.className = "pill warn";
+    } else {
+      badge.className = "pill ok";
+    }
     text.textContent = res.label;
   } catch (e) {
     badge.className = "pill err";
@@ -533,6 +537,7 @@ window.closeModals = () => {
   document.getElementById("modalShare").classList.add("hidden");
   document.getElementById("modalJoin").classList.add("hidden");
   document.getElementById("modalHistory").classList.add("hidden");
+  document.getElementById("modalHelp").classList.add("hidden");
 };
 
 function openAddGameModal(preselectPreset = null) {
@@ -803,6 +808,15 @@ document.getElementById("btnCopyShareCode").onclick = async () => {
   toast("Код приглашения скопирован! Отправьте его другу.");
 };
 document.getElementById("btnSettings").onclick = openSettingsModal;
+document.getElementById("btnHelp").onclick = () => document.getElementById("modalHelp").classList.remove("hidden");
+document.querySelectorAll(".help-tab-btn").forEach((btn) => {
+  btn.onclick = () => {
+    document.querySelectorAll(".help-tab-btn").forEach((b) => b.classList.remove("active"));
+    document.querySelectorAll(".help-pane").forEach((p) => p.classList.add("hidden"));
+    btn.classList.add("active");
+    document.getElementById(btn.dataset.htab).classList.remove("hidden");
+  };
+});
 document.getElementById("btnEmptySettings").onclick = openSettingsModal;
 document.getElementById("setBackend").onchange = toggleBackendBoxes;
 document.querySelectorAll(".tab-btn").forEach((btn) => {

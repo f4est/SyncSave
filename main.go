@@ -376,7 +376,13 @@ func buildMux(cfg *config.AppConfig, gdrive *storage.GDriveBackend, engine *sync
 		label := "Google Drive: Подключено"
 		switch b.Name() {
 		case "local":
-			label = "Локальная папка: Готово"
+			snap := cfg.Snapshot()
+			defaultDir := filepath.Join(config.AppDataDir(), "SharedSaves")
+			if filepath.Clean(snap.LocalSyncDir) == filepath.Clean(defaultDir) {
+				label = "Только локально (не в облаке)"
+			} else {
+				label = "Папка: " + filepath.Base(snap.LocalSyncDir)
+			}
 		case "webdav":
 			label = "WebDAV: Подключено"
 		case "s3":
