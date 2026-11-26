@@ -77,6 +77,12 @@ type GameProfile struct {
 	LastSyncAt    string `json:"last_sync_at,omitempty"`
 }
 
+// Optional build-time defaults (can be injected locally via -ldflags without committing secrets).
+var (
+	DefaultClientID     = ""
+	DefaultClientSecret = ""
+)
+
 // GDriveConfig holds Google OAuth2 credentials and tokens.
 type GDriveConfig struct {
 	ClientID     string `json:"client_id"`
@@ -151,7 +157,9 @@ func DefaultConfig() *AppConfig {
 		Backend:            BackendGDrive,
 		LocalSyncDir:       filepath.Join(AppDataDir(), "SharedSaves"),
 		GDrive: GDriveConfig{
-			FolderID: "1LfiBTS0x4vHFJJi9dK1H64Bj5zi5md8X",
+			ClientID:     DefaultClientID,
+			ClientSecret: DefaultClientSecret,
+			FolderID:     "1LfiBTS0x4vHFJJi9dK1H64Bj5zi5md8X",
 		},
 		LAN: LANConfig{
 			Port: 47821,
@@ -216,6 +224,12 @@ func Load() (*AppConfig, error) {
 	}
 	if cfg.Git.Branch == "" {
 		cfg.Git.Branch = "main"
+	}
+	if cfg.GDrive.ClientID == "" && DefaultClientID != "" {
+		cfg.GDrive.ClientID = DefaultClientID
+	}
+	if cfg.GDrive.ClientSecret == "" && DefaultClientSecret != "" {
+		cfg.GDrive.ClientSecret = DefaultClientSecret
 	}
 	return cfg, nil
 }

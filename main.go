@@ -464,6 +464,8 @@ func buildMux(cfg *config.AppConfig, gdrive *storage.GDriveBackend, engine *sync
 			RemoteFolder string `json:"remote_folder"`
 			Backend      string `json:"backend"`
 			FolderID     string `json:"folder_id,omitempty"`
+			GDriveID     string `json:"gdrive_client_id,omitempty"`
+			GDriveSecret string `json:"gdrive_client_secret,omitempty"`
 			WebDAVURL    string `json:"webdav_url,omitempty"`
 			WebDAVBase   string `json:"webdav_base,omitempty"`
 			WebDAVUser   string `json:"webdav_user,omitempty"`
@@ -511,6 +513,12 @@ func buildMux(cfg *config.AppConfig, gdrive *storage.GDriveBackend, engine *sync
 			}
 			if inv.FolderID != "" {
 				c.GDrive.FolderID = inv.FolderID
+			}
+			if inv.GDriveID != "" {
+				c.GDrive.ClientID = inv.GDriveID
+			}
+			if inv.GDriveSecret != "" {
+				c.GDrive.ClientSecret = inv.GDriveSecret
 			}
 			if inv.WebDAVURL != "" {
 				c.WebDAV.URL = inv.WebDAVURL
@@ -807,6 +815,10 @@ func buildMux(cfg *config.AppConfig, gdrive *storage.GDriveBackend, engine *sync
 			switch snap.Backend {
 			case config.BackendGDrive:
 				payload["folder_id"] = snap.GDrive.FolderID
+				if req.IncludeSecrets {
+					payload["gdrive_client_id"] = snap.GDrive.ClientID
+					payload["gdrive_client_secret"] = snap.GDrive.ClientSecret
+				}
 			case config.BackendWebDAV:
 				payload["webdav_url"] = snap.WebDAV.URL
 				payload["webdav_base"] = snap.WebDAV.BasePath
