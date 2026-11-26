@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SyncSave — Кооп-синхронизация сохранений</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <!-- Top Header -->
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="17 8 12 3 7 8"/>
+            <line x1="12" y1="3" x2="12" y2="15"/>
+          </svg>
+        </div>
+        <div>
+          <div class="brand-title">SyncSave</div>
+          <div class="brand-sub">Co-op Save Sync</div>
+        </div>
+      </div>
+
+      <div class="topbar-right">
+        <div id="backendBadge" class="pill pill-neutral" title="Статус облака">
+          <span class="dot"></span>
+          <span id="backendText">Проверка...</span>
+        </div>
+        <div id="playerBadge" class="pill pill-player" title="Ваш никнейм в коопе">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+          </svg>
+          <span id="playerNameLabel">Player</span>
+        </div>
+        <button id="btnRefreshAll" class="btn btn-ghost btn-sm" title="Обновить статусы">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+          </svg>
+          Обновить
+        </button>
+        <button id="btnSettings" class="btn btn-secondary btn-sm">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+          Настройки
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Split Layout -->
+    <div class="workspace">
+      <!-- Left Sidebar -->
+      <aside class="sidebar">
+        <div class="sidebar-header">
+          <span>Игры и миры</span>
+          <button id="btnAddGame" class="btn btn-primary btn-xs">+ Добавить</button>
+        </div>
+        <div id="gameList" class="game-list"></div>
+        <div class="sidebar-footer">
+          <div class="mem-hint">Фоновый режим: ~15 МБ ОЗУ</div>
+        </div>
+      </aside>
+
+      <!-- Right Content -->
+      <main class="main-panel">
+        <div id="emptyState" class="empty-state">
+          <div class="empty-card">
+            <h2>Добро пожаловать в SyncSave</h2>
+            <p>Добавьте игру, подключите общую папку Google Drive и играйте в коопе без выделенного сервера — любой друг сможет хостить мир с последним сохранением.</p>
+            <div class="empty-actions">
+              <button id="btnEmptyAdd" class="btn btn-primary">+ Добавить игру</button>
+              <button id="btnEmptySettings" class="btn btn-secondary">Настроить Google Drive</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="gameDetail" class="game-detail hidden">
+          <!-- World Header Card -->
+          <section class="card world-card">
+            <div class="world-top">
+              <div>
+                <div class="world-title-row">
+                  <h1 id="detailName">Game Name</h1>
+                  <span id="detailStateBadge" class="status-badge">Synced</span>
+                </div>
+                <div class="world-meta">
+                  <span id="detailLocalPath" class="mono-path" title="Локальная папка сохранений"></span>
+                  <button id="btnOpenFolder" class="link-btn">Открыть папку</button>
+                </div>
+                <div class="world-meta">
+                  Общий мир: <strong id="detailRemoteFolder" class="mono-path"></strong>
+                  <span class="sep">•</span>
+                  Версия: <strong id="detailVersion">v0</strong>
+                  <span class="sep">•</span>
+                  Файлов: <strong id="detailFiles">0</strong> (<span id="detailSize">0 МБ</span>)
+                </div>
+              </div>
+
+              <div class="world-toggles">
+                <label class="switch-row" title="Автоматически загружать изменения после выхода из игры / сохранения">
+                  <input type="checkbox" id="chkAutoSync" />
+                  <span>Авто-синхронизация</span>
+                </label>
+                <div class="host-lock-box">
+                  <div id="hostLockInfo" class="host-lock-info">Хост свободен</div>
+                  <button id="btnHostLock" class="btn btn-secondary btn-xs">Взять хост</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Conflict / Warning Banner -->
+            <div id="conflictBanner" class="alert alert-warn hidden">
+              <div id="conflictText"></div>
+              <div class="alert-actions">
+                <button id="btnForcePush" class="btn btn-warn btn-xs">Загрузить принудительно</button>
+                <button id="btnForcePull" class="btn btn-secondary btn-xs">Скачать принудительно</button>
+              </div>
+            </div>
+
+            <!-- Action Controls -->
+            <div class="sync-actions">
+              <input id="pushNote" type="text" class="input note-input" placeholder="Комментарий к сохранению (например: После босса)..." />
+              <button id="btnPush" class="btn btn-primary">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+                Загрузить (Push)
+              </button>
+              <button id="btnPull" class="btn btn-accent">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+                Скачать (Pull)
+              </button>
+              <button id="btnRemoveGame" class="btn btn-danger-ghost btn-sm" title="Удалить профиль игры">Удалить</button>
+            </div>
+          </section>
+
+          <!-- Version History + Activity Log Grid -->
+          <div class="bottom-grid">
+            <section class="card history-card">
+              <div class="card-header">
+                <h3>История версий (Откат)</h3>
+                <span class="muted" id="versionCount">0 версий</span>
+              </div>
+              <div class="table-wrap">
+                <table class="ver-table">
+                  <thead>
+                    <tr>
+                      <th>Версия</th>
+                      <th>Игрок</th>
+                      <th>Время</th>
+                      <th>Размер</th>
+                      <th>Комментарий</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody id="versionBody"></tbody>
+                </table>
+              </div>
+            </section>
+
+            <section class="card log-card">
+              <div class="card-header">
+                <h3>Журнал событий</h3>
+              </div>
+              <div id="activityLog" class="activity-log"></div>
+            </section>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Add Game Modal -->
+  <div id="modalAddGame" class="modal hidden">
+    <div class="modal-backdrop" onclick="closeModals()"></div>
+    <div class="modal-dialog modal-lg">
+      <div class="modal-header">
+        <h3>Добавить игру / общий мир</h3>
+        <button class="close-btn" onclick="closeModals()">✕</button>
+      </div>
+      <div class="modal-body">
+        <label class="field-label">Выберите игру из библиотеки (автопоиск на ПК):</label>
+        <div id="presetGrid" class="preset-grid"></div>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="field-label">Название игры</label>
+            <input id="addGameName" type="text" class="input" placeholder="Например: Valheim" />
+          </div>
+          <div class="form-group">
+            <label class="field-label">Имя общего мира в облаке (одинаковое у всех друзей)</label>
+            <div class="input-row">
+              <input id="addRemoteFolder" type="text" class="input" placeholder="Например: Valheim_Squad" />
+              <button id="btnPickRemoteWorld" class="btn btn-secondary btn-sm" type="button" title="Выбрать существующий мир из облака">Из облака</button>
+            </div>
+            <select id="remoteWorldSelect" class="input hidden" style="margin-top:6px"></select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="field-label">Локальная папка сохранений</label>
+          <div class="input-row">
+            <input id="addLocalPath" type="text" class="input" placeholder="C:\Users\...\SavedGames" />
+            <button id="btnBrowseLocal" class="btn btn-secondary btn-sm" type="button">Обзор...</button>
+          </div>
+        </div>
+
+        <label class="switch-row" style="margin-top:10px">
+          <input type="checkbox" id="addAutoSync" checked />
+          <span>Включить автоматическую синхронизацию при изменении файлов</span>
+        </label>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="closeModals()">Отмена</button>
+        <button id="btnSaveNewGame" class="btn btn-primary">Сохранить</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings Modal -->
+  <div id="modalSettings" class="modal hidden">
+    <div class="modal-backdrop" onclick="closeModals()"></div>
+    <div class="modal-dialog modal-lg">
+      <div class="modal-header">
+        <h3>Настройки SyncSave и Google Drive</h3>
+        <button class="close-btn" onclick="closeModals()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="field-label">Ваш никнейм (виден друзьям в истории)</label>
+            <input id="setPlayerName" type="text" class="input" />
+          </div>
+          <div class="form-group">
+            <label class="field-label">Режим синхронизации</label>
+            <select id="setBackend" class="input">
+              <option value="gdrive">Google Drive API (Общая папка онлайн)</option>
+              <option value="local">Локальная / Синхронизируемая папка (Google Drive Desktop / OneDrive / LAN)</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="gdriveSettingsBox" class="sub-card">
+          <div class="sub-card-title">
+            <span>Подключение Google Drive API</span>
+            <span id="oauthEmailBadge" class="muted">Не авторизован</span>
+          </div>
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="field-label">Google OAuth Client ID</label>
+              <input id="setClientID" type="text" class="input" placeholder="xxxx.apps.googleusercontent.com" />
+            </div>
+            <div class="form-group">
+              <label class="field-label">Google OAuth Client Secret</label>
+              <input id="setClientSecret" type="password" class="input" placeholder="GOCSPX-..." />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="field-label">ID общей папки Google Drive (из ссылки drive.google.com/drive/folders/<b>ID</b>)</label>
+            <input id="setFolderID" type="text" class="input" placeholder="1AbCDefGhIjKlMnOpQrStUvWxYz" />
+          </div>
+
+          <div class="oauth-actions">
+            <button id="btnGoogleLogin" class="btn btn-primary btn-sm" type="button">Войти через Google</button>
+            <button id="btnTestConn" class="btn btn-secondary btn-sm" type="button">Проверить папку</button>
+          </div>
+
+          <details class="guide-details">
+            <summary>Как за 2 минуты получить бесплатные Client ID, Secret и Folder ID</summary>
+            <ol>
+              <li>Откройте <b>Google Cloud Console</b> → создайте проект → включите <b>Google Drive API</b>.</li>
+              <li>В разделе <b>OAuth consent screen</b> выберите External, добавьте свой Gmail и Gmail друзей в Test Users.</li>
+              <li>В <b>Credentials → Create Credentials → OAuth client ID</b> выберите тип <b>Desktop app</b> — получите <b>Client ID</b> и <b>Client Secret</b>.</li>
+              <li>На Google Диске создайте общую папку, дайте друзьям доступ «Редактор», скопируйте её ID из адресной строки после <code>/folders/</code>.</li>
+            </ol>
+          </details>
+        </div>
+
+        <div id="localSettingsBox" class="sub-card hidden">
+          <div class="form-group">
+            <label class="field-label">Общая папка на ПК (например, папка Google Drive Desktop / OneDrive / локальная сеть)</label>
+            <div class="input-row">
+              <input id="setLocalSyncDir" type="text" class="input" />
+              <button id="btnBrowseSyncDir" class="btn btn-secondary btn-sm" type="button">Обзор...</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-grid" style="margin-top:12px">
+          <label class="switch-row">
+            <input type="checkbox" id="setMinimizeToTray" />
+            <span>Сворачивать в трей при закрытии окна</span>
+          </label>
+          <div class="form-group">
+            <label class="field-label">Интервал проверки файлов (мс)</label>
+            <input id="setPollMs" type="number" min="2000" step="500" class="input" />
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="closeModals()">Отмена</button>
+        <button id="btnSaveSettings" class="btn btn-primary">Сохранить настройки</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+  <script src="app.js"></script>
+</body>
+</html>
