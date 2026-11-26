@@ -85,6 +85,7 @@ func BuiltinPresets() []GamePreset {
 			ID:           "minecraft",
 			Name:         "Minecraft (Java Edition)",
 			Category:     "Sandbox / Co-op",
+			CoverURL:     `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 460 215"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0%25" stop-color="%231e3a5f"/><stop offset="55%25" stop-color="%2322543d"/><stop offset="100%25" stop-color="%233b2f1e"/></linearGradient></defs><rect width="460" height="215" fill="url(%23g)"/><rect y="145" width="460" height="22" fill="%234ade80" opacity="0.85"/><rect y="167" width="460" height="48" fill="%236b4226" opacity="0.9"/><g transform="translate(36,42)"><rect width="68" height="68" rx="6" fill="%2322c55e"/><rect x="12" y="16" width="14" height="14" fill="%23111"/><rect x="42" y="16" width="14" height="14" fill="%23111"/><rect x="26" y="30" width="16" height="12" fill="%23111"/><rect x="18" y="38" width="10" height="16" fill="%23111"/><rect x="40" y="38" width="10" height="16" fill="%23111"/></g><text x="125" y="88" fill="%23ffffff" font-family="Segoe UI,sans-serif" font-weight="900" font-size="34" letter-spacing="1">MINECRAFT</text><text x="127" y="114" fill="%23bbf7d0" font-family="Segoe UI,sans-serif" font-weight="700" font-size="14" letter-spacing="2">JAVA EDITION</text></svg>`,
 			PathPatterns: []string{`%APPDATA%\.minecraft\saves`},
 		},
 		{
@@ -189,6 +190,7 @@ func BuiltinPresets() []GamePreset {
 			ID:           "vintage_story",
 			Name:         "Vintage Story",
 			Category:     "Sandbox / Co-op",
+			CoverURL:     `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 460 215"><defs><linearGradient id="vg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%25" stop-color="%2329190d"/><stop offset="55%25" stop-color="%235c3317"/><stop offset="100%25" stop-color="%2392400e"/></linearGradient></defs><rect width="460" height="215" fill="url(%23vg)"/><circle cx="385" cy="70" r="65" fill="%23f59e0b" opacity="0.18"/><circle cx="385" cy="70" r="34" fill="%23fbbf24" opacity="0.28"/><g transform="translate(40,56)"><rect x="14" y="10" width="36" height="52" rx="6" fill="none" stroke="%23fbbf24" stroke-width="5"/><circle cx="32" cy="36" r="10" fill="%23f59e0b"/></g><text x="115" y="100" fill="%23fef3c7" font-family="Georgia,serif" font-weight="900" font-size="34">VINTAGE STORY</text><text x="117" y="128" fill="%23fcd34d" font-family="Segoe UI,sans-serif" font-weight="600" font-size="13" letter-spacing="2">SURVIVAL SANDBOX</text></svg>`,
 			PathPatterns: []string{`%APPDATA%\VintagestoryData\Saves`},
 		},
 		{

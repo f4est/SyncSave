@@ -323,7 +323,7 @@ function renderLibraryGrid() {
       ? `<span class="lib-badge">Найдена на ПК</span>`
       : "";
     const coverHtml = p.cover_url
-      ? `<img src="${escapeHtml(p.cover_url)}" loading="lazy" alt="${escapeHtml(p.name)}" onerror="this.remove()" />`
+      ? `<img src="${escapeHtml(p.cover_url)}" loading="lazy" alt="${escapeHtml(p.name)}" onerror="this.style.display='none'" />`
       : "";
     card.innerHTML = `
       <div class="lib-cover" style="background:${art.g}">
@@ -418,10 +418,10 @@ function renderDetail() {
   const iconEl = document.getElementById("detailGameIcon");
   iconEl.style.background = art.g;
   iconEl.innerHTML = g.cover_url
-    ? `<img src="${escapeHtml(g.cover_url)}" style="width:100%;height:100%;object-fit:cover;border-radius:12px" onerror="this.remove()" />`
+    ? `<img src="${escapeHtml(g.cover_url)}" style="width:100%;height:100%;object-fit:cover;border-radius:9px;display:block" onerror="this.remove()" />`
     : art.icon;
   const heroBg = document.getElementById("worldHeroBg");
-  heroBg.style.backgroundImage = g.cover_url ? `url('${g.cover_url}')` : "none";
+  heroBg.style.backgroundImage = g.cover_url ? `url("${g.cover_url}")` : "none";
   document.getElementById("worldCard").style.background = g.cover_url
     ? "var(--panel)"
     : `radial-gradient(circle at top left, ${art.glow}, transparent 55%), var(--panel)`;
@@ -533,17 +533,23 @@ function openAddGameModal(preselectPreset = null) {
   const grid = document.getElementById("presetGrid");
   grid.innerHTML = "";
   state.selectedPreset = preselectPreset;
+  if (!preselectPreset) {
+    document.getElementById("addGameName").value = "";
+    document.getElementById("addRemoteFolder").value = "";
+    document.getElementById("addLocalPath").value = "";
+  }
   for (const p of state.presets) {
     const btn = document.createElement("button");
+    btn.type = "button";
     btn.className = "preset-chip" + (preselectPreset && preselectPreset.id === p.id ? " selected" : "");
     const art = getGameArt(p.name);
     const iconHtml = p.cover_url
-      ? `<img src="${escapeHtml(p.cover_url)}" style="width:100%;height:100%;object-fit:cover;border-radius:6px" onerror="this.remove()" />`
+      ? `<img src="${escapeHtml(p.cover_url)}" style="width:100%;height:100%;object-fit:cover;display:block" onerror="this.remove()" />`
       : art.icon;
     btn.innerHTML = `
-      <div class="game-art-sm" style="background:${art.g};width:36px;height:24px;font-size:12px;overflow:hidden">${iconHtml}</div>
-      <div>
-        <div>${escapeHtml(p.name)}</div>
+      <div class="game-art-sm" style="background:${art.g};width:44px;height:24px;font-size:12px">${iconHtml}</div>
+      <div style="min-width:0">
+        <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(p.name)}</div>
         ${p.installed ? `<span class="installed">✓ Найдена на ПК</span>` : ""}
       </div>
     `;
