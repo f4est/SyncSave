@@ -63,20 +63,23 @@ type Engine struct {
 	onNotify func(title, msg string)
 
 	// Lightweight stat cache for 0% CPU idle watching
-	watchMu       sync.Mutex
-	lastStatSig   map[string]string
-	pendingChange map[string]time.Time
+	watchMu          sync.Mutex
+	lastStatSig      map[string]string
+	pendingChange    map[string]time.Time
+	lastRemoteCheck  time.Time
+	notifiedConflict map[string]int
 }
 
 func NewEngine(cfg *config.AppConfig, gdrive *storage.GDriveBackend, onEvent func()) *Engine {
 	return &Engine{
-		cfg:           cfg,
-		gdrive:        gdrive,
-		busy:          make(map[string]bool),
-		logs:          make([]ActivityEntry, 0, 100),
-		onEvent:       onEvent,
-		lastStatSig:   make(map[string]string),
-		pendingChange: make(map[string]time.Time),
+		cfg:              cfg,
+		gdrive:           gdrive,
+		busy:             make(map[string]bool),
+		logs:             make([]ActivityEntry, 0, 100),
+		onEvent:          onEvent,
+		lastStatSig:      make(map[string]string),
+		pendingChange:    make(map[string]time.Time),
+		notifiedConflict: make(map[string]int),
 	}
 }
 
@@ -591,6 +594,41 @@ func (e *Engine) watchTick(ctx context.Context) {
 		} else {
 			e.watchMu.Unlock()
 		}
+	}
+
+	if snap.AutoPullEnabled {
+		remoteInterval := time.Duration(snap.RemotePollSeconds) * time.Second
+		if remoteInterval < 10*time.Second {
+			remoteInterval = 60 * time.Second
+		}
+		if now.Sub(e.lastRemoteCheck) >= remoteInterval {
+			e.lastRemoteCheck = now
+			go e.remotePullTick(ctx)
+		}
+	}
+}
+
+func (e *Engine) remotePullTick(ctx context.Context) {
+	snap := e.cfg.Snapshot()
+	if snap.AutoSyncPaused || !snap.AutoPullEnabled {
+		return
+	}
+	for _, g := range snap.Games {
+		checkCtx, cancel := context.WithTimeout(ctx, 2*time.Minute)
+		st := e.GetGameStatus(checkCtx, g.ID)
+		switch st.State {
+		case StateRemoteAhead:
+			if _, err := e.Pull(checkCtx, g.ID, 0, false); err != nil {
+				e.AddLog("warn", g.Name, "Auto-pull: "+err.Error())
+			}
+		case StateConflict:
+			if e.notifiedConflict[g.ID] != st.RemoteVersion {
+				e.notifiedConflict[g.ID] = st.RemoteVersion
+				e.AddLog("warn", g.Name, fmt.Sprintf("Конфликт с облачной версией v%d", st.RemoteVersion))
+				e.notify("SyncSave — Конфликт", fmt.Sprintf("%s: новая версия v%d конфликтует с локальными изменениями", g.Name, st.RemoteVersion))
+			}
+		}
+		cancel()
 	}
 }
 

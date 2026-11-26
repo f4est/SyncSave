@@ -235,6 +235,8 @@ func buildMux(cfg *config.AppConfig, gdrive *storage.GDriveBackend, engine *sync
 				MemorySaver        bool   `json:"memory_saver"`
 				AutoSyncPaused     bool   `json:"auto_sync_paused"`
 				AutoPullOnStart    bool   `json:"auto_pull_on_start"`
+				AutoPullEnabled    bool   `json:"auto_pull_enabled"`
+				RemotePollSeconds  int    `json:"remote_poll_seconds"`
 				DebounceSeconds    int    `json:"debounce_seconds"`
 				DefaultKeepBackups int    `json:"default_keep_backups"`
 				PollIntervalMs     int    `json:"poll_interval_ms"`
@@ -305,6 +307,10 @@ func buildMux(cfg *config.AppConfig, gdrive *storage.GDriveBackend, engine *sync
 				c.MemorySaver = req.MemorySaver
 				c.AutoSyncPaused = req.AutoSyncPaused
 				c.AutoPullOnStart = req.AutoPullOnStart
+				c.AutoPullEnabled = req.AutoPullEnabled
+				if req.RemotePollSeconds >= 10 {
+					c.RemotePollSeconds = req.RemotePollSeconds
+				}
 				if req.DebounceSeconds >= 2 {
 					c.DebounceSeconds = req.DebounceSeconds
 				}

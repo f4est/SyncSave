@@ -544,23 +544,33 @@
               <span data-i18n="pause_autosync">Поставить фоновую авто-синхронизацию на паузу</span>
             </label>
             <label class="switch-row">
+              <input type="checkbox" id="setAutoPullEnabled" />
+              <span>Автоматически проверять облако и принимать изменения (Auto-Pull)</span>
+            </label>
+            <label class="switch-row">
               <input type="checkbox" id="setAutoPullOnStart" />
               <span data-i18n="autopull_start">Проверять и синхронизировать миры при запуске программы</span>
             </label>
           </div>
           <div class="form-grid" style="margin-top:8px">
             <div class="form-group">
-              <label class="field-label" data-i18n="poll_label">Интервал проверки файлов (мс)</label>
+              <label class="field-label">Интервал проверки облака для приёма (сек)</label>
+              <input id="setRemotePollSec" type="number" min="10" max="3600" step="5" class="input" />
+            </div>
+            <div class="form-group">
+              <label class="field-label" data-i18n="poll_label">Интервал проверки локальных файлов (мс)</label>
               <input id="setPollMs" type="number" min="2000" step="500" class="input" />
             </div>
+          </div>
+          <div class="form-grid">
             <div class="form-group">
               <label class="field-label" data-i18n="debounce_label">Задержка перед авто-загрузкой (сек)</label>
               <input id="setDebounceSec" type="number" min="2" max="120" class="input" />
             </div>
-          </div>
-          <div class="form-group">
-            <label class="field-label" data-i18n="backups_label">Максимум локальных бэкапов на игру</label>
-            <input id="setKeepBackups" type="number" min="1" max="50" class="input" />
+            <div class="form-group">
+              <label class="field-label" data-i18n="backups_label">Максимум локальных бэкапов на игру</label>
+              <input id="setKeepBackups" type="number" min="1" max="50" class="input" />
+            </div>
           </div>
         </div>
       </div>

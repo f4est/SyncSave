@@ -110,6 +110,8 @@ type AppConfig struct {
 	MemorySaver        bool          `json:"memory_saver"`
 	AutoSyncPaused     bool          `json:"auto_sync_paused"`
 	AutoPullOnStart    bool          `json:"auto_pull_on_start"`
+	AutoPullEnabled    bool          `json:"auto_pull_enabled"`
+	RemotePollSeconds  int           `json:"remote_poll_seconds"`
 	DebounceSeconds    int           `json:"debounce_seconds"`
 	DefaultKeepBackups int           `json:"default_keep_backups"`
 	PollIntervalMs     int           `json:"poll_interval_ms"`
@@ -165,6 +167,8 @@ func DefaultConfig() *AppConfig {
 		MemorySaver:        true,
 		AutoSyncPaused:     false,
 		AutoPullOnStart:    false,
+		AutoPullEnabled:    true,
+		RemotePollSeconds:  60,
 		DebounceSeconds:    8,
 		DefaultKeepBackups: 5,
 		PollIntervalMs:     5000,
@@ -200,6 +204,9 @@ func Load() (*AppConfig, error) {
 	}
 	if cfg.DebounceSeconds < 2 {
 		cfg.DebounceSeconds = 8
+	}
+	if cfg.RemotePollSeconds < 10 {
+		cfg.RemotePollSeconds = 60
 	}
 	if cfg.DefaultKeepBackups < 1 {
 		cfg.DefaultKeepBackups = 5
@@ -262,6 +269,8 @@ func (c *AppConfig) Snapshot() *AppConfig {
 		MemorySaver:        c.MemorySaver,
 		AutoSyncPaused:     c.AutoSyncPaused,
 		AutoPullOnStart:    c.AutoPullOnStart,
+		AutoPullEnabled:    c.AutoPullEnabled,
+		RemotePollSeconds:  c.RemotePollSeconds,
 		DebounceSeconds:    c.DebounceSeconds,
 		DefaultKeepBackups: c.DefaultKeepBackups,
 		PollIntervalMs:     c.PollIntervalMs,

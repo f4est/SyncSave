@@ -620,7 +620,9 @@ function openSettingsModal() {
   document.getElementById("setTrayNotifications").checked = !!c.tray_notifications;
   document.getElementById("setMemorySaver").checked = !!c.memory_saver;
   document.getElementById("setAutoSyncPaused").checked = !!c.auto_sync_paused;
+  document.getElementById("setAutoPullEnabled").checked = !!c.auto_pull_enabled;
   document.getElementById("setAutoPullOnStart").checked = !!c.auto_pull_on_start;
+  document.getElementById("setRemotePollSec").value = c.remote_poll_seconds || 60;
   document.getElementById("setPollMs").value = c.poll_interval_ms || 5000;
   document.getElementById("setDebounceSec").value = c.debounce_seconds || 8;
   document.getElementById("setKeepBackups").value = c.default_keep_backups || 5;
@@ -955,7 +957,9 @@ document.getElementById("btnSaveSettings").onclick = async () => {
       tray_notifications: document.getElementById("setTrayNotifications").checked,
       memory_saver: document.getElementById("setMemorySaver").checked,
       auto_sync_paused: document.getElementById("setAutoSyncPaused").checked,
+      auto_pull_enabled: document.getElementById("setAutoPullEnabled").checked,
       auto_pull_on_start: document.getElementById("setAutoPullOnStart").checked,
+      remote_poll_seconds: parseInt(document.getElementById("setRemotePollSec").value, 10) || 60,
       poll_interval_ms: parseInt(document.getElementById("setPollMs").value, 10) || 5000,
       debounce_seconds: parseInt(document.getElementById("setDebounceSec").value, 10) || 8,
       default_keep_backups: parseInt(document.getElementById("setKeepBackups").value, 10) || 5,
