@@ -37,6 +37,8 @@ type GameProfile struct {
 	ID            string `json:"id"`
 	Name          string `json:"name"`
 	PresetID      string `json:"preset_id,omitempty"`
+	SteamAppID    string `json:"steam_app_id,omitempty"`
+	CoverURL      string `json:"cover_url,omitempty"`
 	LocalPath     string `json:"local_path"`
 	RemoteFolder  string `json:"remote_folder"` // Subfolder name in the shared Drive/folder, e.g. "Valheim_OurWorld"
 	AutoSync      bool   `json:"auto_sync"`

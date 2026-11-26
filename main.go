@@ -20,6 +20,7 @@ import (
 	"github.com/jchv/go-webview2"
 
 	"syncsave/internal/config"
+	"syncsave/internal/dialog"
 	"syncsave/internal/presets"
 	"syncsave/internal/storage"
 	"syncsave/internal/syncer"
@@ -379,6 +380,9 @@ func buildMux(cfg *config.AppConfig, gdrive *storage.GDriveBackend, engine *sync
 		}
 		var req struct {
 			Name         string `json:"name"`
+			PresetID     string `json:"preset_id"`
+			SteamAppID   string `json:"steam_app_id"`
+			CoverURL     string `json:"cover_url"`
 			LocalPath    string `json:"local_path"`
 			RemoteFolder string `json:"remote_folder"`
 			AutoSync     bool   `json:"auto_sync"`
@@ -408,6 +412,9 @@ func buildMux(cfg *config.AppConfig, gdrive *storage.GDriveBackend, engine *sync
 		g := config.GameProfile{
 			ID:           hex.EncodeToString(idBytes),
 			Name:         req.Name,
+			PresetID:     req.PresetID,
+			SteamAppID:   req.SteamAppID,
+			CoverURL:     req.CoverURL,
 			LocalPath:    filepath.Clean(req.LocalPath),
 			RemoteFolder: req.RemoteFolder,
 			AutoSync:     req.AutoSync,
@@ -540,14 +547,8 @@ func buildMux(cfg *config.AppConfig, gdrive *storage.GDriveBackend, engine *sync
 	})
 
 	mux.HandleFunc("/api/browse-folder", func(w http.ResponseWriter, r *http.Request) {
-		// Lightweight native Windows FolderBrowserDialog via PowerShell
-		ps := `Add-Type -AssemblyName System.Windows.Forms; $d = New-Object System.Windows.Forms.FolderBrowserDialog; $d.Description = 'Выберите папку сохранений'; if ($d.ShowDialog() -eq 'OK') { Write-Output $d.SelectedPath }`
-		out, err := exec.Command("powershell", "-NoProfile", "-STA", "-Command", ps).Output()
-		if err != nil {
-			writeJSON(w, http.StatusOK, map[string]string{"path": ""})
-			return
-		}
-		writeJSON(w, http.StatusOK, map[string]string{"path": strings.TrimSpace(string(out))})
+		p := dialog.PickFolder("Выберите папку сохранений")
+		writeJSON(w, http.StatusOK, map[string]string{"path": p})
 	})
 
 	return mux

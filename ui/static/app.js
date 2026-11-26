@@ -3,6 +3,10 @@ const state = {
   presets: [],
   statuses: {},
   selectedGameId: null,
+  viewMode: "home", // "home" or "detail"
+  libraryFilter: "all",
+  searchQuery: "",
+  selectedPreset: null,
   logs: [],
 };
 
@@ -240,11 +244,9 @@ async function loadConfig() {
   applyTheme(state.config.theme || "dark");
   applyLanguage(state.config.language || "ru");
   document.getElementById("playerNameLabel").textContent = state.config.player_name || "Player";
-  if (!state.selectedGameId && state.config.games.length > 0) {
-    state.selectedGameId = state.config.games[0].id;
-  }
   checkBackendPill();
   renderGameList();
+  renderLibraryGrid();
 }
 
 async function checkBackendPill() {
@@ -262,6 +264,82 @@ async function checkBackendPill() {
 
 async function loadPresets() {
   state.presets = await api("/api/presets");
+  renderLibraryGrid();
+}
+
+window.setLibraryFilter = (f) => {
+  state.libraryFilter = f;
+  document.querySelectorAll(".filter-pill").forEach((el) => el.classList.remove("active"));
+  if (f === "all") document.getElementById("filterAll").classList.add("active");
+  if (f === "installed") document.getElementById("filterInstalled").classList.add("active");
+  if (f === "added") document.getElementById("filterAdded").classList.add("active");
+  renderLibraryGrid();
+};
+
+function showHome() {
+  state.viewMode = "home";
+  state.selectedGameId = null;
+  document.getElementById("btnNavHome").classList.add("active");
+  document.getElementById("homeView").classList.remove("hidden");
+  document.getElementById("gameDetail").classList.add("hidden");
+  renderGameList();
+  renderLibraryGrid();
+}
+
+function renderLibraryGrid() {
+  const grid = document.getElementById("libraryGrid");
+  if (!grid || !state.presets) return;
+  const games = state.config?.games || [];
+  const addedByName = new Map(games.map((g) => [g.name.toLowerCase(), g]));
+  const q = state.searchQuery.trim().toLowerCase();
+
+  let items = state.presets.filter((p) => p.id !== "custom");
+  if (q) items = items.filter((p) => p.name.toLowerCase().includes(q) || p.category.toLowerCase().includes(q));
+  if (state.libraryFilter === "installed") items = items.filter((p) => p.installed);
+  if (state.libraryFilter === "added") items = items.filter((p) => addedByName.has(p.name.toLowerCase()));
+
+  document.getElementById("librarySubtitle").textContent = `${items.length} игр • Нажмите на карточку, чтобы подключить или открыть мир`;
+  grid.innerHTML = "";
+
+  for (const p of items) {
+    const added = addedByName.get(p.name.toLowerCase());
+    const art = getGameArt(p.name);
+    const card = document.createElement("div");
+    card.className = "lib-card";
+    card.onclick = () => {
+      if (added) {
+        state.selectedGameId = added.id;
+        state.viewMode = "detail";
+        document.getElementById("btnNavHome").classList.remove("active");
+        renderGameList();
+        renderDetail();
+      } else {
+        openAddGameModal(p);
+      }
+    };
+    const badge = added
+      ? `<span class="lib-badge synced">Подключена</span>`
+      : p.installed
+      ? `<span class="lib-badge">Найдена на ПК</span>`
+      : "";
+    const coverHtml = p.cover_url
+      ? `<img src="${escapeHtml(p.cover_url)}" loading="lazy" alt="${escapeHtml(p.name)}" onerror="this.remove()" />`
+      : "";
+    card.innerHTML = `
+      <div class="lib-cover" style="background:${art.g}">
+        <span class="lib-cover-fallback">${art.icon}</span>
+        ${coverHtml}
+        ${badge}
+      </div>
+      <div class="lib-card-body">
+        <div style="min-width:0">
+          <div class="lib-card-title">${escapeHtml(p.name)}</div>
+          <div class="lib-card-cat">${escapeHtml(p.category)}</div>
+        </div>
+      </div>
+    `;
+    grid.appendChild(card);
+  }
 }
 
 async function loadLogs() {
@@ -286,28 +364,36 @@ function renderGameList() {
   const list = document.getElementById("gameList");
   list.innerHTML = "";
   const games = state.config?.games || [];
-  if (games.length === 0) {
-    document.getElementById("emptyState").classList.remove("hidden");
+  const q = state.searchQuery.trim().toLowerCase();
+
+  if (state.viewMode === "home" || !state.selectedGameId) {
+    document.getElementById("homeView").classList.remove("hidden");
     document.getElementById("gameDetail").classList.add("hidden");
-    return;
+  } else {
+    document.getElementById("homeView").classList.add("hidden");
+    document.getElementById("gameDetail").classList.remove("hidden");
   }
-  document.getElementById("emptyState").classList.add("hidden");
-  document.getElementById("gameDetail").classList.remove("hidden");
 
   for (const g of games) {
+    if (q && !g.name.toLowerCase().includes(q) && !g.remote_folder.toLowerCase().includes(q)) continue;
     const st = state.statuses[g.id];
     const stCode = st?.state || "not_synced";
     const div = document.createElement("div");
-    div.className = "game-item" + (g.id === state.selectedGameId ? " active" : "");
+    div.className = "game-item" + (state.viewMode === "detail" && g.id === state.selectedGameId ? " active" : "");
     div.onclick = () => {
       state.selectedGameId = g.id;
+      state.viewMode = "detail";
+      document.getElementById("btnNavHome").classList.remove("active");
       renderGameList();
       renderDetail();
     };
     const art = getGameArt(g.name);
+    const thumb = g.cover_url
+      ? `<img src="${escapeHtml(g.cover_url)}" style="width:100%;height:100%;object-fit:cover;border-radius:7px" onerror="this.remove()" />`
+      : art.icon;
     div.innerHTML = `
       <div class="game-item-left">
-        <div class="game-art-sm" style="background:${art.g}">${art.icon}</div>
+        <div class="game-art-sm" style="background:${art.g};overflow:hidden">${thumb}</div>
         <div>
           <div class="game-item-name">${escapeHtml(g.name)}</div>
           <div class="game-item-sub">${escapeHtml(g.remote_folder)} • v${st?.remote_version ?? g.last_synced_ver ?? 0}</div>
@@ -321,16 +407,24 @@ function renderGameList() {
 
 function renderDetail() {
   const id = state.selectedGameId;
-  if (!id || !state.config) return;
+  if (!id || !state.config || state.viewMode !== "detail") return;
   const g = state.config.games.find((x) => x.id === id);
   if (!g) return;
+  document.getElementById("homeView").classList.add("hidden");
+  document.getElementById("gameDetail").classList.remove("hidden");
   const st = state.statuses[id] || { game: g, state: "not_synced", versions: [] };
 
   const art = getGameArt(g.name);
   const iconEl = document.getElementById("detailGameIcon");
   iconEl.style.background = art.g;
-  iconEl.textContent = art.icon;
-  document.getElementById("worldCard").style.background = `radial-gradient(circle at top left, ${art.glow}, transparent 55%), var(--panel)`;
+  iconEl.innerHTML = g.cover_url
+    ? `<img src="${escapeHtml(g.cover_url)}" style="width:100%;height:100%;object-fit:cover;border-radius:12px" onerror="this.remove()" />`
+    : art.icon;
+  const heroBg = document.getElementById("worldHeroBg");
+  heroBg.style.backgroundImage = g.cover_url ? `url('${g.cover_url}')` : "none";
+  document.getElementById("worldCard").style.background = g.cover_url
+    ? "var(--panel)"
+    : `radial-gradient(circle at top left, ${art.glow}, transparent 55%), var(--panel)`;
   document.getElementById("detailName").textContent = g.name;
   document.getElementById("detailStateBadge").textContent = stateLabel(st.state);
   document.getElementById("detailLocalPath").textContent = g.local_path;
@@ -435,32 +529,43 @@ window.closeModals = () => {
   document.getElementById("modalSettings").classList.add("hidden");
 };
 
-function openAddGameModal() {
+function openAddGameModal(preselectPreset = null) {
   const grid = document.getElementById("presetGrid");
   grid.innerHTML = "";
+  state.selectedPreset = preselectPreset;
   for (const p of state.presets) {
     const btn = document.createElement("button");
-    btn.className = "preset-chip";
+    btn.className = "preset-chip" + (preselectPreset && preselectPreset.id === p.id ? " selected" : "");
     const art = getGameArt(p.name);
+    const iconHtml = p.cover_url
+      ? `<img src="${escapeHtml(p.cover_url)}" style="width:100%;height:100%;object-fit:cover;border-radius:6px" onerror="this.remove()" />`
+      : art.icon;
     btn.innerHTML = `
-      <div class="game-art-sm" style="background:${art.g};width:28px;height:28px;font-size:12px">${art.icon}</div>
+      <div class="game-art-sm" style="background:${art.g};width:36px;height:24px;font-size:12px;overflow:hidden">${iconHtml}</div>
       <div>
         <div>${escapeHtml(p.name)}</div>
         ${p.installed ? `<span class="installed">✓ Найдена на ПК</span>` : ""}
       </div>
     `;
-    btn.onclick = () => {
+    const applyPreset = () => {
       document.querySelectorAll(".preset-chip").forEach((c) => c.classList.remove("selected"));
       btn.classList.add("selected");
+      state.selectedPreset = p;
       if (p.id !== "custom") {
         document.getElementById("addGameName").value = p.name;
         document.getElementById("addRemoteFolder").value = p.name.replace(/[^a-zA-Z0-9_-]/g, "_") + "_World";
       }
       if (p.detected_path) {
         document.getElementById("addLocalPath").value = p.detected_path;
+      } else {
+        document.getElementById("addLocalPath").value = "";
       }
     };
+    btn.onclick = applyPreset;
     grid.appendChild(btn);
+    if (preselectPreset && preselectPreset.id === p.id) {
+      applyPreset();
+    }
   }
   document.getElementById("remoteWorldSelect").classList.add("hidden");
   document.getElementById("modalAddGame").classList.remove("hidden");
@@ -518,8 +623,14 @@ window.fillWebDAVPreset = (kind) => {
 };
 
 // Event bindings
-document.getElementById("btnAddGame").onclick = openAddGameModal;
-document.getElementById("btnEmptyAdd").onclick = openAddGameModal;
+document.getElementById("btnNavHome").onclick = showHome;
+document.getElementById("sidebarSearch").oninput = (e) => {
+  state.searchQuery = e.target.value;
+  renderGameList();
+  renderLibraryGrid();
+};
+document.getElementById("btnAddGame").onclick = () => openAddGameModal(null);
+document.getElementById("btnEmptyAdd").onclick = () => openAddGameModal(null);
 document.getElementById("btnSettings").onclick = openSettingsModal;
 document.getElementById("btnEmptySettings").onclick = openSettingsModal;
 document.getElementById("setBackend").onchange = toggleBackendBoxes;
@@ -618,8 +729,18 @@ document.getElementById("btnSaveNewGame").onclick = async () => {
     return;
   }
   try {
-    const g = await api("/api/games", "POST", { name, local_path, remote_folder, auto_sync });
+    const g = await api("/api/games", "POST", {
+      name,
+      local_path,
+      remote_folder,
+      auto_sync,
+      preset_id: state.selectedPreset?.id || "",
+      steam_app_id: state.selectedPreset?.steam_app_id || "",
+      cover_url: state.selectedPreset?.cover_url || "",
+    });
     state.selectedGameId = g.id;
+    state.viewMode = "detail";
+    document.getElementById("btnNavHome").classList.remove("active");
     closeModals();
     await loadConfig();
     await refreshAllStatuses();
