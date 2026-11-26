@@ -191,6 +191,10 @@ func FileSHA256(path string) (string, error) {
 // UnpackDirectory safely extracts srcZip into a staging directory, then replaces dstDir
 // to prevent partial/corrupt save states.
 func UnpackDirectory(srcZip, dstDir string) error {
+	dstDir = filepath.Clean(dstDir)
+	if dstDir == "" || dstDir == "." {
+		return fmt.Errorf("некорректный путь распаковки")
+	}
 	r, err := zip.OpenReader(srcZip)
 	if err != nil {
 		return err

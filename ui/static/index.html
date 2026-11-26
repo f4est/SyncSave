@@ -40,13 +40,13 @@
             <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
             <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
           </svg>
-          Обновить
+          <span data-i18n="refresh">Обновить</span>
         </button>
         <button id="btnSettings" class="btn btn-secondary btn-sm">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
           </svg>
-          Настройки
+          <span data-i18n="settings">Настройки</span>
         </button>
       </div>
     </header>
@@ -56,12 +56,12 @@
       <!-- Left Sidebar -->
       <aside class="sidebar">
         <div class="sidebar-header">
-          <span>Игры и миры</span>
-          <button id="btnAddGame" class="btn btn-primary btn-xs">+ Добавить</button>
+          <span data-i18n="games_worlds">Игры и миры</span>
+          <button id="btnAddGame" class="btn btn-primary btn-xs" data-i18n="add_btn">+ Добавить</button>
         </div>
         <div id="gameList" class="game-list"></div>
         <div class="sidebar-footer">
-          <div class="mem-hint">Фоновый режим: ~15 МБ ОЗУ</div>
+          <div class="mem-hint" data-i18n="bg_hint">Фоновый режим: ~15 МБ ОЗУ</div>
         </div>
       </aside>
 
@@ -69,11 +69,11 @@
       <main class="main-panel">
         <div id="emptyState" class="empty-state">
           <div class="empty-card">
-            <h2>Добро пожаловать в SyncSave</h2>
-            <p>Добавьте игру, подключите общую папку Google Drive и играйте в коопе без выделенного сервера — любой друг сможет хостить мир с последним сохранением.</p>
+            <h2 data-i18n="welcome_title">Добро пожаловать в SyncSave</h2>
+            <p data-i18n="welcome_desc">Добавьте игру, подключите общую папку Google Drive и играйте в коопе без выделенного сервера — любой друг сможет хостить мир с последним сохранением.</p>
             <div class="empty-actions">
-              <button id="btnEmptyAdd" class="btn btn-primary">+ Добавить игру</button>
-              <button id="btnEmptySettings" class="btn btn-secondary">Настроить Google Drive</button>
+              <button id="btnEmptyAdd" class="btn btn-primary" data-i18n="add_game_btn">+ Добавить игру</button>
+              <button id="btnEmptySettings" class="btn btn-secondary" data-i18n="setup_gdrive_btn">Настроить Google Drive</button>
             </div>
           </div>
         </div>
@@ -228,80 +228,158 @@
     <div class="modal-backdrop" onclick="closeModals()"></div>
     <div class="modal-dialog modal-lg">
       <div class="modal-header">
-        <h3>Настройки SyncSave и Google Drive</h3>
+        <h3 data-i18n="settings_title">Настройки SyncSave</h3>
         <button class="close-btn" onclick="closeModals()">✕</button>
       </div>
+      <div class="tabs-bar">
+        <button class="tab-btn active" data-tab="tabGeneral" data-i18n="tab_general">Общие</button>
+        <button class="tab-btn" data-tab="tabTray" data-i18n="tab_tray">Трей и Автозапуск</button>
+        <button class="tab-btn" data-tab="tabCloud" data-i18n="tab_cloud">Облако</button>
+        <button class="tab-btn" data-tab="tabSync" data-i18n="tab_sync">Синхронизация</button>
+      </div>
       <div class="modal-body">
-        <div class="form-grid">
+        <!-- Tab 1: General -->
+        <div id="tabGeneral" class="tab-pane">
           <div class="form-group">
-            <label class="field-label">Ваш никнейм (виден друзьям в истории)</label>
+            <label class="field-label" data-i18n="player_name_label">Ваш никнейм (виден друзьям в истории)</label>
             <input id="setPlayerName" type="text" class="input" />
           </div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="field-label" data-i18n="theme_label">Тема оформления</label>
+              <select id="setTheme" class="input">
+                <option value="dark">SaveSync Dark</option>
+                <option value="midnight">Midnight Cyber</option>
+                <option value="emerald">Emerald Forest</option>
+                <option value="crimson">Crimson Gaming</option>
+                <option value="light">Clean Light</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="field-label" data-i18n="lang_label">Язык интерфейса</label>
+              <select id="setLanguage" class="input">
+                <option value="ru">Русский</option>
+                <option value="en">English</option>
+                <option value="uk">Українська</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab 2: Tray & Autostart -->
+        <div id="tabTray" class="tab-pane hidden">
+          <div class="sub-card" style="display:flex;flex-direction:column;gap:12px">
+            <label class="switch-row">
+              <input type="checkbox" id="setAutostart" />
+              <span data-i18n="autostart_label">Запускать SyncSave автоматически при входе в Windows</span>
+            </label>
+            <label class="switch-row">
+              <input type="checkbox" id="setStartMinimized" />
+              <span data-i18n="start_minimized">Запускать свёрнутым в системный трей</span>
+            </label>
+            <label class="switch-row">
+              <input type="checkbox" id="setMinimizeToTray" />
+              <span data-i18n="minimize_tray">Сворачивать в трей при закрытии окна (крестик)</span>
+            </label>
+            <label class="switch-row">
+              <input type="checkbox" id="setTraySingleClick" />
+              <span data-i18n="tray_single_click">Открывать окно по одиночному клику на иконку в трее</span>
+            </label>
+            <label class="switch-row">
+              <input type="checkbox" id="setTrayNotifications" />
+              <span data-i18n="tray_notifications">Показывать уведомления Windows при синхронизации и конфликтах</span>
+            </label>
+            <label class="switch-row">
+              <input type="checkbox" id="setMemorySaver" />
+              <span data-i18n="memory_saver">Режим экономии ОЗУ: сжимать память при сворачивании в трей</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Tab 3: Cloud -->
+        <div id="tabCloud" class="tab-pane hidden">
           <div class="form-group">
-            <label class="field-label">Режим синхронизации</label>
+            <label class="field-label" data-i18n="backend_label">Режим синхронизации</label>
             <select id="setBackend" class="input">
               <option value="gdrive">Google Drive API (Общая папка онлайн)</option>
               <option value="local">Локальная / Синхронизируемая папка (Google Drive Desktop / OneDrive / LAN)</option>
             </select>
           </div>
-        </div>
 
-        <div id="gdriveSettingsBox" class="sub-card">
-          <div class="sub-card-title">
-            <span>Подключение Google Drive API</span>
-            <span id="oauthEmailBadge" class="muted">Не авторизован</span>
-          </div>
+          <div id="gdriveSettingsBox" class="sub-card">
+            <div class="sub-card-title">
+              <span>Google Drive API</span>
+              <span id="oauthEmailBadge" class="muted">Не авторизован</span>
+            </div>
 
-          <div class="form-grid">
+            <div class="form-grid">
+              <div class="form-group">
+                <label class="field-label">Google OAuth Client ID</label>
+                <input id="setClientID" type="text" class="input" placeholder="xxxx.apps.googleusercontent.com" />
+              </div>
+              <div class="form-group">
+                <label class="field-label">Google OAuth Client Secret</label>
+                <input id="setClientSecret" type="password" class="input" placeholder="GOCSPX-..." />
+              </div>
+            </div>
+
             <div class="form-group">
-              <label class="field-label">Google OAuth Client ID</label>
-              <input id="setClientID" type="text" class="input" placeholder="xxxx.apps.googleusercontent.com" />
+              <label class="field-label">ID общей папки Google Drive (из ссылки drive.google.com/drive/folders/<b>ID</b>)</label>
+              <input id="setFolderID" type="text" class="input" placeholder="1LfiBTS0x4vHFJJi9dK1H64Bj5zi5md8X" />
+            </div>
+
+            <div class="oauth-actions">
+              <button id="btnGoogleLogin" class="btn btn-primary btn-sm" type="button">Войти через Google</button>
+              <button id="btnTestConn" class="btn btn-secondary btn-sm" type="button">Проверить папку</button>
+            </div>
+
+            <details class="guide-details">
+              <summary>Как за 2 минуты получить бесплатные Client ID, Secret и Folder ID</summary>
+              <ol>
+                <li>В Google Cloud Console откройте <b>APIs &amp; Services</b> → включите <b>Google Drive API</b>.</li>
+                <li>Откройте <b>Google Auth Platform</b> → настройте экран (External) → добавьте свой Gmail и Gmail друзей в <b>Audience → Test users</b>.</li>
+                <li>В <b>Clients → Create Client</b> выберите <b>Desktop app</b> → скопируйте <b>Client ID</b> и <b>Client Secret</b>.</li>
+                <li>На Google Диске дайте друзьям доступ «Редактор» к общей папке и скопируйте её ID после <code>/folders/</code>.</li>
+              </ol>
+            </details>
+          </div>
+
+          <div id="localSettingsBox" class="sub-card hidden">
+            <div class="form-group">
+              <label class="field-label">Общая папка на ПК (Google Drive Desktop / OneDrive / локальная сеть)</label>
+              <div class="input-row">
+                <input id="setLocalSyncDir" type="text" class="input" />
+                <button id="btnBrowseSyncDir" class="btn btn-secondary btn-sm" type="button">Обзор...</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab 4: Sync & Backups -->
+        <div id="tabSync" class="tab-pane hidden">
+          <div class="sub-card" style="display:flex;flex-direction:column;gap:10px">
+            <label class="switch-row">
+              <input type="checkbox" id="setAutoSyncPaused" />
+              <span data-i18n="pause_autosync">Поставить фоновую авто-синхронизацию на паузу</span>
+            </label>
+            <label class="switch-row">
+              <input type="checkbox" id="setAutoPullOnStart" />
+              <span data-i18n="autopull_start">Проверять и синхронизировать миры при запуске программы</span>
+            </label>
+          </div>
+          <div class="form-grid" style="margin-top:8px">
+            <div class="form-group">
+              <label class="field-label" data-i18n="poll_label">Интервал проверки файлов (мс)</label>
+              <input id="setPollMs" type="number" min="2000" step="500" class="input" />
             </div>
             <div class="form-group">
-              <label class="field-label">Google OAuth Client Secret</label>
-              <input id="setClientSecret" type="password" class="input" placeholder="GOCSPX-..." />
+              <label class="field-label" data-i18n="debounce_label">Задержка перед авто-загрузкой (сек)</label>
+              <input id="setDebounceSec" type="number" min="2" max="120" class="input" />
             </div>
           </div>
-
           <div class="form-group">
-            <label class="field-label">ID общей папки Google Drive (из ссылки drive.google.com/drive/folders/<b>ID</b>)</label>
-            <input id="setFolderID" type="text" class="input" placeholder="1AbCDefGhIjKlMnOpQrStUvWxYz" />
-          </div>
-
-          <div class="oauth-actions">
-            <button id="btnGoogleLogin" class="btn btn-primary btn-sm" type="button">Войти через Google</button>
-            <button id="btnTestConn" class="btn btn-secondary btn-sm" type="button">Проверить папку</button>
-          </div>
-
-          <details class="guide-details">
-            <summary>Как за 2 минуты получить бесплатные Client ID, Secret и Folder ID</summary>
-            <ol>
-              <li>Откройте <b>Google Cloud Console</b> → создайте проект → включите <b>Google Drive API</b>.</li>
-              <li>В разделе <b>OAuth consent screen</b> выберите External, добавьте свой Gmail и Gmail друзей в Test Users.</li>
-              <li>В <b>Credentials → Create Credentials → OAuth client ID</b> выберите тип <b>Desktop app</b> — получите <b>Client ID</b> и <b>Client Secret</b>.</li>
-              <li>На Google Диске создайте общую папку, дайте друзьям доступ «Редактор», скопируйте её ID из адресной строки после <code>/folders/</code>.</li>
-            </ol>
-          </details>
-        </div>
-
-        <div id="localSettingsBox" class="sub-card hidden">
-          <div class="form-group">
-            <label class="field-label">Общая папка на ПК (например, папка Google Drive Desktop / OneDrive / локальная сеть)</label>
-            <div class="input-row">
-              <input id="setLocalSyncDir" type="text" class="input" />
-              <button id="btnBrowseSyncDir" class="btn btn-secondary btn-sm" type="button">Обзор...</button>
-            </div>
-          </div>
-        </div>
-
-        <div class="form-grid" style="margin-top:12px">
-          <label class="switch-row">
-            <input type="checkbox" id="setMinimizeToTray" />
-            <span>Сворачивать в трей при закрытии окна</span>
-          </label>
-          <div class="form-group">
-            <label class="field-label">Интервал проверки файлов (мс)</label>
-            <input id="setPollMs" type="number" min="2000" step="500" class="input" />
+            <label class="field-label" data-i18n="backups_label">Максимум локальных бэкапов на игру</label>
+            <input id="setKeepBackups" type="number" min="1" max="50" class="input" />
           </div>
         </div>
       </div>

@@ -328,6 +328,9 @@ func (g *GDriveBackend) findChild(ctx context.Context, parentID, name, mimeType 
 }
 
 func (g *GDriveBackend) ensureWorldFolder(ctx context.Context, remoteFolder string, createIfMissing bool) (string, error) {
+	if remoteFolder == "" || strings.ContainsAny(remoteFolder, `/\`) || strings.Contains(remoteFolder, "..") {
+		return "", fmt.Errorf("некорректное имя папки мира: %q", remoteFolder)
+	}
 	g.mu.Lock()
 	cached, ok := g.folderCache[remoteFolder]
 	g.mu.Unlock()
@@ -417,6 +420,11 @@ func (g *GDriveBackend) GetManifest(ctx context.Context, remoteFolder string) (*
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode >= 300 {
+		if resp.StatusCode == http.StatusNotFound {
+			g.mu.Lock()
+			delete(g.folderCache, remoteFolder)
+			g.mu.Unlock()
+		}
 		b, _ := io.ReadAll(resp.Body)
 		return nil, fmt.Errorf("download manifest failed (%d): %s", resp.StatusCode, string(b))
 	}

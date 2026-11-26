@@ -1,4 +1,5 @@
-:root {
+:root,
+[data-theme="dark"] {
   --bg: #0b0f17;
   --panel: #131a26;
   --panel-2: #192232;
@@ -12,6 +13,58 @@
   --warn: #f59e0b;
   --danger: #ef4444;
   --radius: 10px;
+}
+
+[data-theme="midnight"] {
+  --bg: #070913;
+  --panel: #0f1428;
+  --panel-2: #161d38;
+  --border: #28345c;
+  --text: #eef2ff;
+  --muted: #93a3c8;
+  --primary: #8b5cf6;
+  --primary-hover: #7c3aed;
+  --accent: #06b6d4;
+  --accent-hover: #0891b2;
+}
+
+[data-theme="emerald"] {
+  --bg: #07120e;
+  --panel: #0e2019;
+  --panel-2: #142c23;
+  --border: #224839;
+  --text: #e8f5ef;
+  --muted: #8bb5a2;
+  --primary: #10b981;
+  --primary-hover: #059669;
+  --accent: #34d399;
+  --accent-hover: #10b981;
+}
+
+[data-theme="crimson"] {
+  --bg: #13090c;
+  --panel: #1e1015;
+  --panel-2: #29161d;
+  --border: #482430;
+  --text: #fceef2;
+  --muted: #b88b99;
+  --primary: #f43f5e;
+  --primary-hover: #e11d48;
+  --accent: #fb923c;
+  --accent-hover: #f97316;
+}
+
+[data-theme="light"] {
+  --bg: #f1f5f9;
+  --panel: #ffffff;
+  --panel-2: #f8fafc;
+  --border: #cbd5e1;
+  --text: #0f172a;
+  --muted: #475569;
+  --primary: #2563eb;
+  --primary-hover: #1d4ed8;
+  --accent: #059669;
+  --accent-hover: #047857;
 }
 
 * { box-sizing: border-box; }
@@ -456,6 +509,29 @@ html, body {
   justify-content: space-between;
 }
 .modal-header h3 { margin: 0; font-size: 15px; }
+.tabs-bar {
+  display: flex;
+  gap: 4px;
+  padding: 8px 18px 0;
+  border-bottom: 1px solid var(--border);
+  background: var(--panel-2);
+}
+.tab-btn {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--muted);
+  padding: 8px 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.tab-btn:hover { color: var(--text); }
+.tab-btn.active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+}
+.tab-pane { display: flex; flex-direction: column; gap: 10px; }
 .close-btn { background: none; border: none; color: var(--muted); font-size: 16px; cursor: pointer; }
 .modal-body { padding: 16px 18px; overflow-y: auto; }
 .modal-footer {

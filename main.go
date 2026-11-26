@@ -9,6 +9,7 @@ import (
 	"io/fs"
 	"net"
 	"net/http"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
@@ -33,14 +34,29 @@ func main() {
 	}
 	defer releaseMutex()
 
-	cfg, err := config.Load()
-	if err != nil {
+	cfg, loadErr := config.Load()
+	if cfg == nil {
 		cfg = config.DefaultConfig()
+	}
+	// Sync autostart state with actual Windows Registry
+	if realAuto := config.IsAutostartEnabled(); realAuto != cfg.Snapshot().Autostart {
+		_ = cfg.Update(func(c *config.AppConfig) { c.Autostart = realAuto })
+	}
+
+	startMinFlag := false
+	for _, arg := range os.Args[1:] {
+		if arg == "--minimized" {
+			startMinFlag = true
+		}
 	}
 
 	gdrive := storage.NewGDriveBackend(cfg)
 	engine := syncer.NewEngine(cfg, gdrive, nil)
-	engine.AddLog("info", "", "SyncSave запущен")
+	if loadErr != nil {
+		engine.AddLog("warn", "", loadErr.Error())
+	} else {
+		engine.AddLog("info", "", "SyncSave запущен")
+	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -68,6 +84,7 @@ func main() {
 	}()
 
 	var (
+		trayIcon *tray.Tray
 		winMu    sync.Mutex
 		winOpen  bool
 		exitOnce sync.Once
@@ -92,6 +109,8 @@ func main() {
 				winMu.Unlock()
 				if !cfg.Snapshot().MinimizeToTray {
 					exitOnce.Do(func() { close(quitCh) })
+				} else if cfg.Snapshot().MemorySaver {
+					go tray.TrimMemory()
 				}
 			}()
 
@@ -112,18 +131,64 @@ func main() {
 				return
 			}
 			defer w.Destroy()
+			trayIcon.ApplyWindowIcon(w.Window())
 			w.SetSize(1120, 720, webview2.HintNone)
 			w.Navigate(baseURL)
 			w.Run()
 		}()
 	}
 
-	trayIcon := tray.Start("SyncSave — Кооп-синхронизация сохранений", openWindow, func() {
-		exitOnce.Do(func() { close(quitCh) })
+	trayIcon = tray.Start("SyncSave — Кооп-синхронизация сохранений", tray.Callbacks{
+		OnShow: openWindow,
+		OnSyncAll: func() {
+			go func() {
+				sCtx, sCancel := context.WithTimeout(ctx, 5*time.Minute)
+				defer sCancel()
+				engine.SyncAll(sCtx)
+			}()
+		},
+		OnTogglePause: func() {
+			_ = cfg.Update(func(c *config.AppConfig) {
+				c.AutoSyncPaused = !c.AutoSyncPaused
+			})
+			if cfg.Snapshot().AutoSyncPaused {
+				engine.AddLog("warn", "", "Авто-синхронизация поставлена на паузу")
+			} else {
+				engine.AddLog("info", "", "Авто-синхронизация возобновлена")
+			}
+		},
+		OnOpenBackups: func() {
+			_ = os.MkdirAll(config.BackupsDir(), 0o755)
+			_ = exec.Command("explorer", config.BackupsDir()).Start()
+		},
+		OnToggleStartup: func() {
+			snap := cfg.Snapshot()
+			next := !snap.Autostart
+			if err := config.SetAutostart(next, snap.StartMinimized); err == nil {
+				_ = cfg.Update(func(c *config.AppConfig) {
+					c.Autostart = next
+				})
+			}
+		},
+		OnExit: func() {
+			exitOnce.Do(func() { close(quitCh) })
+		},
+		IsSingleClick: func() bool { return cfg.Snapshot().TraySingleClick },
+		IsPaused:      func() bool { return cfg.Snapshot().AutoSyncPaused },
+		IsAutostart:   func() bool { return cfg.Snapshot().Autostart },
 	})
 	defer trayIcon.Stop()
+	engine.SetNotifier(trayIcon.ShowBalloon)
 
-	if !cfg.Snapshot().StartMinimized {
+	if cfg.Snapshot().AutoPullOnStart {
+		go func() {
+			sCtx, sCancel := context.WithTimeout(ctx, 3*time.Minute)
+			defer sCancel()
+			engine.SyncAll(sCtx)
+		}()
+	}
+
+	if !startMinFlag && !cfg.Snapshot().StartMinimized {
 		openWindow()
 	}
 
@@ -153,9 +218,20 @@ func buildMux(cfg *config.AppConfig, gdrive *storage.GDriveBackend, engine *sync
 		case http.MethodPost:
 			var req struct {
 				PlayerName         string `json:"player_name"`
+				Language           string `json:"language"`
+				Theme              string `json:"theme"`
 				Backend            string `json:"backend"`
 				LocalSyncDir       string `json:"local_sync_dir"`
 				MinimizeToTray     bool   `json:"minimize_to_tray"`
+				StartMinimized     bool   `json:"start_minimized"`
+				Autostart          bool   `json:"autostart"`
+				TraySingleClick    bool   `json:"tray_single_click"`
+				TrayNotifications  bool   `json:"tray_notifications"`
+				MemorySaver        bool   `json:"memory_saver"`
+				AutoSyncPaused     bool   `json:"auto_sync_paused"`
+				AutoPullOnStart    bool   `json:"auto_pull_on_start"`
+				DebounceSeconds    int    `json:"debounce_seconds"`
+				DefaultKeepBackups int    `json:"default_keep_backups"`
 				PollIntervalMs     int    `json:"poll_interval_ms"`
 				GDriveClientID     string `json:"gdrive_client_id"`
 				GDriveClientSecret string `json:"gdrive_client_secret"`
@@ -165,9 +241,19 @@ func buildMux(cfg *config.AppConfig, gdrive *storage.GDriveBackend, engine *sync
 				writeErr(w, http.StatusBadRequest, err.Error())
 				return
 			}
+			if err := config.SetAutostart(req.Autostart, req.StartMinimized); err != nil {
+				writeErr(w, http.StatusInternalServerError, "ошибка автозапуска: "+err.Error())
+				return
+			}
 			err := cfg.Update(func(c *config.AppConfig) {
 				if req.PlayerName != "" {
 					c.PlayerName = req.PlayerName
+				}
+				if req.Language != "" {
+					c.Language = req.Language
+				}
+				if req.Theme != "" {
+					c.Theme = req.Theme
 				}
 				if req.Backend == string(config.BackendLocal) {
 					c.Backend = config.BackendLocal
@@ -178,6 +264,19 @@ func buildMux(cfg *config.AppConfig, gdrive *storage.GDriveBackend, engine *sync
 					c.LocalSyncDir = req.LocalSyncDir
 				}
 				c.MinimizeToTray = req.MinimizeToTray
+				c.StartMinimized = req.StartMinimized
+				c.Autostart = req.Autostart
+				c.TraySingleClick = req.TraySingleClick
+				c.TrayNotifications = req.TrayNotifications
+				c.MemorySaver = req.MemorySaver
+				c.AutoSyncPaused = req.AutoSyncPaused
+				c.AutoPullOnStart = req.AutoPullOnStart
+				if req.DebounceSeconds >= 2 {
+					c.DebounceSeconds = req.DebounceSeconds
+				}
+				if req.DefaultKeepBackups >= 1 {
+					c.DefaultKeepBackups = req.DefaultKeepBackups
+				}
 				if req.PollIntervalMs >= 2000 {
 					c.PollIntervalMs = req.PollIntervalMs
 				}
@@ -261,10 +360,26 @@ func buildMux(cfg *config.AppConfig, gdrive *storage.GDriveBackend, engine *sync
 			LocalPath    string `json:"local_path"`
 			RemoteFolder string `json:"remote_folder"`
 			AutoSync     bool   `json:"auto_sync"`
+			KeepBackups  int    `json:"keep_backups"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			writeErr(w, http.StatusBadRequest, err.Error())
 			return
+		}
+		req.Name = strings.TrimSpace(req.Name)
+		req.LocalPath = strings.TrimSpace(req.LocalPath)
+		req.RemoteFolder = strings.TrimSpace(req.RemoteFolder)
+		if req.Name == "" || req.LocalPath == "" || req.RemoteFolder == "" {
+			writeErr(w, http.StatusBadRequest, "название, локальный путь и имя мира обязательны")
+			return
+		}
+		if strings.ContainsAny(req.RemoteFolder, `/\`) || strings.Contains(req.RemoteFolder, "..") {
+			writeErr(w, http.StatusBadRequest, "имя общего мира не должно содержать / \\ или ..")
+			return
+		}
+		keep := req.KeepBackups
+		if keep <= 0 {
+			keep = 5
 		}
 		idBytes := make([]byte, 6)
 		_, _ = rand.Read(idBytes)
@@ -274,7 +389,7 @@ func buildMux(cfg *config.AppConfig, gdrive *storage.GDriveBackend, engine *sync
 			LocalPath:    filepath.Clean(req.LocalPath),
 			RemoteFolder: req.RemoteFolder,
 			AutoSync:     req.AutoSync,
-			KeepBackups:  5,
+			KeepBackups:  keep,
 		}
 		if err := cfg.Update(func(c *config.AppConfig) {
 			c.Games = append(c.Games, g)
@@ -298,23 +413,32 @@ func buildMux(cfg *config.AppConfig, gdrive *storage.GDriveBackend, engine *sync
 		switch {
 		case action == "" && r.Method == http.MethodPatch:
 			var req struct {
-				AutoSync *bool `json:"auto_sync"`
+				AutoSync    *bool `json:"auto_sync"`
+				KeepBackups *int  `json:"keep_backups"`
 			}
 			if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 				writeErr(w, http.StatusBadRequest, err.Error())
 				return
 			}
-			_ = cfg.Update(func(c *config.AppConfig) {
+			if err := cfg.Update(func(c *config.AppConfig) {
 				for i := range c.Games {
-					if c.Games[i].ID == id && req.AutoSync != nil {
-						c.Games[i].AutoSync = *req.AutoSync
+					if c.Games[i].ID == id {
+						if req.AutoSync != nil {
+							c.Games[i].AutoSync = *req.AutoSync
+						}
+						if req.KeepBackups != nil && *req.KeepBackups > 0 {
+							c.Games[i].KeepBackups = *req.KeepBackups
+						}
 					}
 				}
-			})
+			}); err != nil {
+				writeErr(w, http.StatusInternalServerError, err.Error())
+				return
+			}
 			writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
 
 		case action == "" && r.Method == http.MethodDelete:
-			_ = cfg.Update(func(c *config.AppConfig) {
+			if err := cfg.Update(func(c *config.AppConfig) {
 				filtered := make([]config.GameProfile, 0, len(c.Games))
 				for _, g := range c.Games {
 					if g.ID != id {
@@ -322,7 +446,10 @@ func buildMux(cfg *config.AppConfig, gdrive *storage.GDriveBackend, engine *sync
 					}
 				}
 				c.Games = filtered
-			})
+			}); err != nil {
+				writeErr(w, http.StatusInternalServerError, err.Error())
+				return
+			}
 			writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
 
 		case action == "status" && r.Method == http.MethodGet:

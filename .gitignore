@@ -1,0 +1,7 @@
+SyncSave.exe
+SyncSave.exe.sha256
+*.tmp
+*.corrupt
+webview2/
+
+*.exe~

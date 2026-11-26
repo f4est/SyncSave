@@ -53,13 +53,14 @@ type ActivityEntry struct {
 
 // Engine orchestrates co-op save syncing, conflict prevention, backups, and background watching.
 type Engine struct {
-	cfg     *config.AppConfig
-	gdrive  *storage.GDriveBackend
-	mu      sync.Mutex
-	busy    map[string]bool
-	logs    []ActivityEntry
-	logMu   sync.RWMutex
-	onEvent func()
+	cfg      *config.AppConfig
+	gdrive   *storage.GDriveBackend
+	mu       sync.Mutex
+	busy     map[string]bool
+	logs     []ActivityEntry
+	logMu    sync.RWMutex
+	onEvent  func()
+	onNotify func(title, msg string)
 
 	// Lightweight stat cache for 0% CPU idle watching
 	watchMu       sync.Mutex
@@ -76,6 +77,17 @@ func NewEngine(cfg *config.AppConfig, gdrive *storage.GDriveBackend, onEvent fun
 		onEvent:       onEvent,
 		lastStatSig:   make(map[string]string),
 		pendingChange: make(map[string]time.Time),
+	}
+}
+
+// SetNotifier sets an optional callback for desktop/tray notifications.
+func (e *Engine) SetNotifier(fn func(title, msg string)) {
+	e.onNotify = fn
+}
+
+func (e *Engine) notify(title, msg string) {
+	if e.onNotify != nil && e.cfg.Snapshot().TrayNotifications {
+		e.onNotify(title, msg)
 	}
 }
 
@@ -321,6 +333,7 @@ func (e *Engine) Push(ctx context.Context, id, note string, force bool) (*storag
 	})
 
 	e.AddLog("success", g.Name, fmt.Sprintf("Загружена версия v%d (%s)", nextVer, snap.PlayerName))
+	e.notify("SyncSave — "+g.Name, fmt.Sprintf("Сохранение v%d загружено в облако", nextVer))
 	return &ver, nil
 }
 
@@ -407,6 +420,7 @@ func (e *Engine) Pull(ctx context.Context, id string, targetVersion int, force b
 	})
 
 	e.AddLog("success", g.Name, fmt.Sprintf("Установлена версия v%d (от %s)", chosen.Version, chosen.Author))
+	e.notify("SyncSave — "+g.Name, fmt.Sprintf("Установлена версия v%d (от %s)", chosen.Version, chosen.Author))
 	return chosen, nil
 }
 
@@ -448,6 +462,9 @@ func (e *Engine) SetHostLock(ctx context.Context, id string, acquire bool) error
 func (e *Engine) createLocalBackup(g config.GameProfile) {
 	keep := g.KeepBackups
 	if keep <= 0 {
+		keep = e.cfg.Snapshot().DefaultKeepBackups
+	}
+	if keep <= 0 {
 		keep = 5
 	}
 	backupDir := filepath.Join(config.BackupsDir(), sanitizeName(g.ID))
@@ -487,9 +504,37 @@ func (e *Engine) RunWatcher(ctx context.Context) {
 	}
 }
 
+// SyncAll checks all configured games and pushes local changes or pulls updates if safe.
+func (e *Engine) SyncAll(ctx context.Context) {
+	snap := e.cfg.Snapshot()
+	if len(snap.Games) == 0 {
+		return
+	}
+	e.AddLog("info", "", "Запуск синхронизации всех игр...")
+	for _, g := range snap.Games {
+		st := e.GetGameStatus(ctx, g.ID)
+		switch st.State {
+		case StateLocalAhead:
+			_, _ = e.Push(ctx, g.ID, "Sync All", false)
+		case StateRemoteAhead:
+			_, _ = e.Pull(ctx, g.ID, 0, false)
+		case StateConflict:
+			e.AddLog("warn", g.Name, "Пропущено при Sync All: конфликт версий")
+			e.notify("SyncSave — Конфликт", g.Name+": требуется ручное решение конфликта")
+		}
+	}
+}
+
 func (e *Engine) watchTick(ctx context.Context) {
 	snap := e.cfg.Snapshot()
+	if snap.AutoSyncPaused {
+		return
+	}
 	now := time.Now()
+	debounce := time.Duration(snap.DebounceSeconds) * time.Second
+	if debounce < 2*time.Second {
+		debounce = 8 * time.Second
+	}
 
 	for _, g := range snap.Games {
 		if !g.AutoSync {
@@ -514,7 +559,7 @@ func (e *Engine) watchTick(ctx context.Context) {
 			continue
 		}
 		changedAt, pending := e.pendingChange[g.ID]
-		if pending && now.Sub(changedAt) >= 8*time.Second {
+		if pending && now.Sub(changedAt) >= debounce {
 			delete(e.pendingChange, g.ID)
 			e.watchMu.Unlock()
 

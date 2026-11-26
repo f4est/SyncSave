@@ -2,6 +2,7 @@ package config
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"sync"
@@ -43,16 +44,25 @@ type GDriveConfig struct {
 
 // AppConfig is the root persistent configuration.
 type AppConfig struct {
-	mu             sync.RWMutex
-	PlayerName     string        `json:"player_name"`
-	Language       string        `json:"language"` // "ru" or "en"
-	Backend        BackendType   `json:"backend"`
-	LocalSyncDir   string        `json:"local_sync_dir"`
-	GDrive         GDriveConfig  `json:"gdrive"`
-	MinimizeToTray bool          `json:"minimize_to_tray"`
-	StartMinimized bool          `json:"start_minimized"`
-	PollIntervalMs int           `json:"poll_interval_ms"`
-	Games          []GameProfile `json:"games"`
+	mu                 sync.RWMutex
+	PlayerName         string        `json:"player_name"`
+	Language           string        `json:"language"` // "ru", "en", "uk"
+	Theme              string        `json:"theme"`    // "dark", "midnight", "emerald", "crimson", "light"
+	Backend            BackendType   `json:"backend"`
+	LocalSyncDir       string        `json:"local_sync_dir"`
+	GDrive             GDriveConfig  `json:"gdrive"`
+	MinimizeToTray     bool          `json:"minimize_to_tray"`
+	StartMinimized     bool          `json:"start_minimized"`
+	Autostart          bool          `json:"autostart"`
+	TraySingleClick    bool          `json:"tray_single_click"`
+	TrayNotifications  bool          `json:"tray_notifications"`
+	MemorySaver        bool          `json:"memory_saver"`
+	AutoSyncPaused     bool          `json:"auto_sync_paused"`
+	AutoPullOnStart    bool          `json:"auto_pull_on_start"`
+	DebounceSeconds    int           `json:"debounce_seconds"`
+	DefaultKeepBackups int           `json:"default_keep_backups"`
+	PollIntervalMs     int           `json:"poll_interval_ms"`
+	Games              []GameProfile `json:"games"`
 }
 
 // AppDataDir returns %APPDATA%\SyncSave (or fallback to executable dir).
@@ -82,17 +92,26 @@ func DefaultConfig() *AppConfig {
 		hostname = "Player"
 	}
 	return &AppConfig{
-		PlayerName:     hostname,
-		Language:       "ru",
-		Backend:        BackendGDrive,
-		LocalSyncDir:   filepath.Join(AppDataDir(), "SharedSaves"),
+		PlayerName:         hostname,
+		Language:           "ru",
+		Theme:              "dark",
+		Backend:            BackendGDrive,
+		LocalSyncDir:       filepath.Join(AppDataDir(), "SharedSaves"),
 		GDrive: GDriveConfig{
 			FolderID: "1LfiBTS0x4vHFJJi9dK1H64Bj5zi5md8X",
 		},
-		MinimizeToTray: true,
-		StartMinimized: false,
-		PollIntervalMs: 5000,
-		Games:          []GameProfile{},
+		MinimizeToTray:     true,
+		StartMinimized:     false,
+		Autostart:          false,
+		TraySingleClick:    true,
+		TrayNotifications:  true,
+		MemorySaver:        true,
+		AutoSyncPaused:     false,
+		AutoPullOnStart:    false,
+		DebounceSeconds:    8,
+		DefaultKeepBackups: 5,
+		PollIntervalMs:     5000,
+		Games:              []GameProfile{},
 	}
 }
 
@@ -110,13 +129,23 @@ func Load() (*AppConfig, error) {
 	}
 	cfg := DefaultConfig()
 	if err := json.Unmarshal(data, cfg); err != nil {
-		return nil, err
+		_ = os.Rename(p, p+".corrupt")
+		return cfg, fmt.Errorf("config.json повреждён (сохранён как config.json.corrupt): %w", err)
 	}
 	if cfg.PollIntervalMs < 1500 {
 		cfg.PollIntervalMs = 5000
 	}
 	if cfg.Language == "" {
 		cfg.Language = "ru"
+	}
+	if cfg.Theme == "" {
+		cfg.Theme = "dark"
+	}
+	if cfg.DebounceSeconds < 2 {
+		cfg.DebounceSeconds = 8
+	}
+	if cfg.DefaultKeepBackups < 1 {
+		cfg.DefaultKeepBackups = 5
 	}
 	return cfg, nil
 }
@@ -145,13 +174,31 @@ func (c *AppConfig) saveLocked() error {
 }
 
 // Snapshot returns a thread-safe copy of the config for reading.
-func (c *AppConfig) Snapshot() AppConfig {
+func (c *AppConfig) Snapshot() *AppConfig {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
-	cp := *c
-	cp.Games = make([]GameProfile, len(c.Games))
-	copy(cp.Games, c.Games)
-	return cp
+	games := make([]GameProfile, len(c.Games))
+	copy(games, c.Games)
+	return &AppConfig{
+		PlayerName:         c.PlayerName,
+		Language:           c.Language,
+		Theme:              c.Theme,
+		Backend:            c.Backend,
+		LocalSyncDir:       c.LocalSyncDir,
+		GDrive:             c.GDrive,
+		MinimizeToTray:     c.MinimizeToTray,
+		StartMinimized:     c.StartMinimized,
+		Autostart:          c.Autostart,
+		TraySingleClick:    c.TraySingleClick,
+		TrayNotifications:  c.TrayNotifications,
+		MemorySaver:        c.MemorySaver,
+		AutoSyncPaused:     c.AutoSyncPaused,
+		AutoPullOnStart:    c.AutoPullOnStart,
+		DebounceSeconds:    c.DebounceSeconds,
+		DefaultKeepBackups: c.DefaultKeepBackups,
+		PollIntervalMs:     c.PollIntervalMs,
+		Games:              games,
+	}
 }
 
 // Update mutates the config safely and persists it.

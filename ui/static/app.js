@@ -6,15 +6,161 @@ const state = {
   logs: [],
 };
 
-const stateLabels = {
-  synced: "Синхронизировано",
-  local_ahead: "Есть локальные изменения",
-  remote_ahead: "Доступно обновление",
-  conflict: "Конфликт версий",
-  not_synced: "Не синхронизировано",
-  missing_local: "Папка не найдена",
-  error: "Ошибка",
+const I18N = {
+  ru: {
+    refresh: "Обновить",
+    settings: "Настройки",
+    games_worlds: "Игры и миры",
+    add_btn: "+ Добавить",
+    bg_hint: "Фоновый режим: ~15 МБ ОЗУ",
+    welcome_title: "Добро пожаловать в SyncSave",
+    welcome_desc: "Добавьте игру, подключите общую папку Google Drive и играйте в коопе без выделенного сервера — любой друг сможет хостить мир с последним сохранением.",
+    add_game_btn: "+ Добавить игру",
+    setup_gdrive_btn: "Настроить Google Drive",
+    theme_label: "Тема оформления",
+    lang_label: "Язык интерфейса",
+    settings_title: "Настройки SyncSave",
+    tab_general: "Общие",
+    tab_tray: "Трей и Автозапуск",
+    tab_cloud: "Облако",
+    tab_sync: "Синхронизация",
+    player_name_label: "Ваш никнейм (виден друзьям в истории)",
+    autostart_label: "Запускать SyncSave автоматически при входе в Windows",
+    minimize_tray: "Сворачивать в трей при закрытии окна (крестик)",
+    start_minimized: "Запускать свёрнутым в системный трей",
+    tray_single_click: "Открывать окно по одиночному клику на иконку в трее",
+    tray_notifications: "Показывать уведомления Windows при синхронизации и конфликтах",
+    memory_saver: "Режим экономии ОЗУ: сжимать память при сворачивании в трей",
+    backend_label: "Режим синхронизации",
+    pause_autosync: "Поставить фоновую авто-синхронизацию на паузу",
+    autopull_start: "Проверять и синхронизировать миры при запуске программы",
+    poll_label: "Интервал проверки файлов (мс)",
+    debounce_label: "Задержка перед авто-загрузкой (сек)",
+    backups_label: "Максимум локальных бэкапов на игру",
+    state_synced: "Синхронизировано",
+    state_local_ahead: "Есть локальные изменения",
+    state_remote_ahead: "Доступно обновление",
+    state_conflict: "Конфликт версий",
+    state_not_synced: "Не синхронизировано",
+    state_missing_local: "Папка не найдена",
+    state_error: "Ошибка",
+    host_free: "Хост свободен",
+    host_take: "Взять хост",
+    host_release: "Освободить хост",
+    host_steal: "Перехватить",
+    host_by: "Хостит:",
+    rollback: "Откатить",
+  },
+  en: {
+    refresh: "Refresh",
+    settings: "Settings",
+    games_worlds: "Games & Worlds",
+    add_btn: "+ Add",
+    bg_hint: "Background RAM: ~15 MB",
+    welcome_title: "Welcome to SyncSave",
+    welcome_desc: "Add a game, connect a shared Google Drive folder, and play co-op without a dedicated server — any friend can host the world with the latest save.",
+    add_game_btn: "+ Add Game",
+    setup_gdrive_btn: "Setup Google Drive",
+    theme_label: "Theme",
+    lang_label: "Language",
+    settings_title: "SyncSave Settings",
+    tab_general: "General",
+    tab_tray: "Tray & Autostart",
+    tab_cloud: "Cloud",
+    tab_sync: "Sync & Backups",
+    player_name_label: "Player nickname (visible to friends)",
+    autostart_label: "Launch SyncSave automatically on Windows startup",
+    minimize_tray: "Minimize to tray on window close",
+    start_minimized: "Start minimized to system tray",
+    tray_single_click: "Open window on single tray icon click",
+    tray_notifications: "Show Windows notifications on sync and conflicts",
+    memory_saver: "Memory Saver: trim working set when minimized to tray",
+    backend_label: "Sync backend",
+    pause_autosync: "Pause background auto-sync",
+    autopull_start: "Check and sync worlds on startup",
+    poll_label: "File check interval (ms)",
+    debounce_label: "Auto-upload debounce delay (sec)",
+    backups_label: "Max local backups per game",
+    state_synced: "Synced",
+    state_local_ahead: "Local changes",
+    state_remote_ahead: "Update available",
+    state_conflict: "Version conflict",
+    state_not_synced: "Not synced",
+    state_missing_local: "Folder not found",
+    state_error: "Error",
+    host_free: "Host free",
+    host_take: "Claim Host",
+    host_release: "Release Host",
+    host_steal: "Take Over",
+    host_by: "Host:",
+    rollback: "Rollback",
+  },
+  uk: {
+    refresh: "Оновити",
+    settings: "Налаштування",
+    games_worlds: "Ігри та світи",
+    add_btn: "+ Додати",
+    bg_hint: "Фоновий режим: ~15 МБ ОЗП",
+    welcome_title: "Ласкаво просимо до SyncSave",
+    welcome_desc: "Додайте гру, підключіть спільну папку Google Drive та грайте в коопі без виділеного сервера — будь-хто з друзів зможе хостити світ з останнім збереженням.",
+    add_game_btn: "+ Додати гру",
+    setup_gdrive_btn: "Налаштувати Google Drive",
+    theme_label: "Тема оформлення",
+    lang_label: "Мова інтерфейсу",
+    settings_title: "Налаштування SyncSave",
+    tab_general: "Загальні",
+    tab_tray: "Трей та Автозапуск",
+    tab_cloud: "Хмара",
+    tab_sync: "Синхронізація",
+    player_name_label: "Ваш нікнейм (видно друзям в історії)",
+    autostart_label: "Запускати SyncSave автоматично при вході в Windows",
+    minimize_tray: "Згортати в трей при закритті вікна",
+    start_minimized: "Запускати згорнутим у системний трей",
+    tray_single_click: "Відкривати вікно одним кліком по іконці в треї",
+    tray_notifications: "Показувати сповіщення Windows при синхронізації та конфліктах",
+    memory_saver: "Режим економії ОЗП: стискати пам'ять при згортанні в трей",
+    backend_label: "Режим синхронізації",
+    pause_autosync: "Поставити фонову авто-синхронізацію на паузу",
+    autopull_start: "Перевіряти та синхронізувати світи при запуску",
+    poll_label: "Інтервал перевірки файлів (мс)",
+    debounce_label: "Затримка перед авто-завантаженням (сек)",
+    backups_label: "Максимум локальних бекапів на гру",
+    state_synced: "Синхронізовано",
+    state_local_ahead: "Є локальні зміни",
+    state_remote_ahead: "Доступне оновлення",
+    state_conflict: "Конфлікт версій",
+    state_not_synced: "Не синхронізовано",
+    state_missing_local: "Папку не знайдено",
+    state_error: "Помилка",
+    host_free: "Хост вільний",
+    host_take: "Взяти хост",
+    host_release: "Звільнити хост",
+    host_steal: "Перехопити",
+    host_by: "Хостить:",
+    rollback: "Відкотити",
+  },
 };
+
+function t(key) {
+  const lang = state.config?.language || "ru";
+  return (I18N[lang] && I18N[lang][key]) || I18N.ru[key] || key;
+}
+
+function applyTheme(theme) {
+  document.documentElement.setAttribute("data-theme", theme || "dark");
+}
+
+function applyLanguage(lang) {
+  const dict = I18N[lang] || I18N.ru;
+  document.querySelectorAll("[data-i18n]").forEach((el) => {
+    const key = el.getAttribute("data-i18n");
+    if (dict[key]) el.textContent = dict[key];
+  });
+}
+
+function stateLabel(code) {
+  return t("state_" + code) || code;
+}
 
 async function api(path, method = "GET", body = null) {
   const opts = { method, headers: {} };
@@ -48,6 +194,8 @@ async function init() {
 
 async function loadConfig() {
   state.config = await api("/api/config");
+  applyTheme(state.config.theme || "dark");
+  applyLanguage(state.config.language || "ru");
   document.getElementById("playerNameLabel").textContent = state.config.player_name || "Player";
   if (!state.selectedGameId && state.config.games.length > 0) {
     state.selectedGameId = state.config.games[0].id;
@@ -118,7 +266,7 @@ function renderGameList() {
         <div class="game-item-name">${escapeHtml(g.name)}</div>
         <div class="game-item-sub">${escapeHtml(g.remote_folder)} • v${st?.remote_version ?? g.last_synced_ver ?? 0}</div>
       </div>
-      <span class="status-dot st-${stCode}" title="${stateLabels[stCode] || stCode}"></span>
+      <span class="status-dot st-${stCode}" title="${stateLabel(stCode)}"></span>
     `;
     list.appendChild(div);
   }
@@ -132,7 +280,7 @@ function renderDetail() {
   const st = state.statuses[id] || { game: g, state: "not_synced", versions: [] };
 
   document.getElementById("detailName").textContent = g.name;
-  document.getElementById("detailStateBadge").textContent = stateLabels[st.state] || st.state;
+  document.getElementById("detailStateBadge").textContent = stateLabel(st.state);
   document.getElementById("detailLocalPath").textContent = g.local_path;
   document.getElementById("detailRemoteFolder").textContent = g.remote_folder;
   document.getElementById("detailVersion").textContent = `v${st.remote_version || 0}`;
@@ -144,11 +292,11 @@ function renderDetail() {
   const lockInfo = document.getElementById("hostLockInfo");
   const lockBtn = document.getElementById("btnHostLock");
   if (st.host_lock) {
-    lockInfo.textContent = `Хостит: ${st.host_lock.holder}`;
-    lockBtn.textContent = st.host_lock.holder === state.config.player_name ? "Освободить хост" : "Перехватить";
+    lockInfo.textContent = `${t("host_by")} ${st.host_lock.holder}`;
+    lockBtn.textContent = st.host_lock.holder === state.config.player_name ? t("host_release") : t("host_steal");
   } else {
-    lockInfo.textContent = "Хост свободен";
-    lockBtn.textContent = "Взять хост";
+    lockInfo.textContent = t("host_free");
+    lockBtn.textContent = t("host_take");
   }
 
   // Conflict / error banner
@@ -177,7 +325,7 @@ function renderDetail() {
       <td>${escapeHtml(v.timestamp)}</td>
       <td>${(v.zip_size / (1024 * 1024)).toFixed(2)} МБ</td>
       <td>${escapeHtml(v.note || "—")}</td>
-      <td><button class="btn btn-secondary btn-xs" onclick="rollbackVersion(${v.version})">Откатить</button></td>
+      <td><button class="btn btn-secondary btn-xs" onclick="rollbackVersion(${v.version})">${t("rollback")}</button></td>
     `;
     tbody.appendChild(tr);
   }
@@ -267,8 +415,19 @@ function openSettingsModal() {
   document.getElementById("setClientSecret").value = c.gdrive?.client_secret || "";
   document.getElementById("setFolderID").value = c.gdrive?.folder_id || "";
   document.getElementById("setLocalSyncDir").value = c.local_sync_dir || "";
+  document.getElementById("setTheme").value = c.theme || "dark";
+  document.getElementById("setLanguage").value = c.language || "ru";
+  document.getElementById("setAutostart").checked = !!c.autostart;
   document.getElementById("setMinimizeToTray").checked = !!c.minimize_to_tray;
+  document.getElementById("setStartMinimized").checked = !!c.start_minimized;
+  document.getElementById("setTraySingleClick").checked = !!c.tray_single_click;
+  document.getElementById("setTrayNotifications").checked = !!c.tray_notifications;
+  document.getElementById("setMemorySaver").checked = !!c.memory_saver;
+  document.getElementById("setAutoSyncPaused").checked = !!c.auto_sync_paused;
+  document.getElementById("setAutoPullOnStart").checked = !!c.auto_pull_on_start;
   document.getElementById("setPollMs").value = c.poll_interval_ms || 5000;
+  document.getElementById("setDebounceSec").value = c.debounce_seconds || 8;
+  document.getElementById("setKeepBackups").value = c.default_keep_backups || 5;
   document.getElementById("oauthEmailBadge").textContent = c.gdrive?.user_email ? `Подключен: ${c.gdrive.user_email}` : "Не авторизован";
   toggleBackendBoxes();
   document.getElementById("modalSettings").classList.remove("hidden");
@@ -286,6 +445,21 @@ document.getElementById("btnEmptyAdd").onclick = openAddGameModal;
 document.getElementById("btnSettings").onclick = openSettingsModal;
 document.getElementById("btnEmptySettings").onclick = openSettingsModal;
 document.getElementById("setBackend").onchange = toggleBackendBoxes;
+document.querySelectorAll(".tab-btn").forEach((btn) => {
+  btn.onclick = () => {
+    document.querySelectorAll(".tab-btn").forEach((b) => b.classList.remove("active"));
+    document.querySelectorAll(".tab-pane").forEach((p) => p.classList.add("hidden"));
+    btn.classList.add("active");
+    document.getElementById(btn.dataset.tab).classList.remove("hidden");
+  };
+});
+document.getElementById("setTheme").onchange = (e) => applyTheme(e.target.value);
+document.getElementById("setLanguage").onchange = (e) => {
+  if (state.config) state.config.language = e.target.value;
+  applyLanguage(e.target.value);
+  renderGameList();
+  renderDetail();
+};
 document.getElementById("btnRefreshAll").onclick = refreshAllStatuses;
 document.getElementById("btnPush").onclick = () => pushGame(false);
 document.getElementById("btnPull").onclick = () => pullGame(0, false);
@@ -375,10 +549,21 @@ document.getElementById("btnSaveSettings").onclick = async () => {
   try {
     await api("/api/config", "POST", {
       player_name: document.getElementById("setPlayerName").value.trim(),
+      theme: document.getElementById("setTheme").value,
+      language: document.getElementById("setLanguage").value,
       backend: document.getElementById("setBackend").value,
       local_sync_dir: document.getElementById("setLocalSyncDir").value.trim(),
       minimize_to_tray: document.getElementById("setMinimizeToTray").checked,
+      start_minimized: document.getElementById("setStartMinimized").checked,
+      autostart: document.getElementById("setAutostart").checked,
+      tray_single_click: document.getElementById("setTraySingleClick").checked,
+      tray_notifications: document.getElementById("setTrayNotifications").checked,
+      memory_saver: document.getElementById("setMemorySaver").checked,
+      auto_sync_paused: document.getElementById("setAutoSyncPaused").checked,
+      auto_pull_on_start: document.getElementById("setAutoPullOnStart").checked,
       poll_interval_ms: parseInt(document.getElementById("setPollMs").value, 10) || 5000,
+      debounce_seconds: parseInt(document.getElementById("setDebounceSec").value, 10) || 8,
+      default_keep_backups: parseInt(document.getElementById("setKeepBackups").value, 10) || 5,
       gdrive_client_id: document.getElementById("setClientID").value.trim(),
       gdrive_client_secret: document.getElementById("setClientSecret").value.trim(),
       gdrive_folder_id: document.getElementById("setFolderID").value.trim(),
