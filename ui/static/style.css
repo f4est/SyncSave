@@ -805,6 +805,48 @@ html, body {
 .guide-details summary { cursor: pointer; color: var(--primary); }
 .guide-details ol { margin: 8px 0 0; padding-left: 18px; line-height: 1.5; }
 
+.lan-popover-wrap { position: relative; }
+.lan-popover {
+  position: absolute;
+  top: 40px;
+  right: 0;
+  width: 290px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px;
+  z-index: 60;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55);
+}
+.lan-pop-title { font-weight: 700; font-size: 13px; margin-bottom: 4px; }
+
+.world-quick-btns {
+  display: flex;
+  gap: 6px;
+  margin: 6px 0;
+  flex-wrap: wrap;
+}
+
+.hist-card {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.hist-pill-cur {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: rgba(16, 185, 129, 0.18);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+}
+
 .toast {
   position: fixed;
   bottom: 18px;

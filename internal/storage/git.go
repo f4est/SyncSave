@@ -89,7 +89,7 @@ func (g *GitBackend) PutManifest(ctx context.Context, remoteFolder string, m *Wo
 		return err
 	}
 	msg := fmt.Sprintf("SyncSave: %s v%d (%s)", remoteFolder, m.LatestVersion, m.UpdatedBy)
-	_, _ = g.runGit(ctx, g.LocalDir, "commit", "-m", msg)
+	_, _ = g.runGit(ctx, g.LocalDir, "-c", "user.name=SyncSave", "-c", "user.email=syncsave@local", "commit", "-m", msg)
 	_, err := g.runGit(ctx, g.LocalDir, "push", "origin", "HEAD:"+g.Branch)
 	return err
 }

@@ -70,6 +70,7 @@ type GameProfile struct {
 	RemoteFolder  string `json:"remote_folder"` // Subfolder name in the shared Drive/folder, e.g. "Valheim_OurWorld"
 	AutoSync      bool   `json:"auto_sync"`
 	AutoPull      bool   `json:"auto_pull"`
+	Favorite      bool   `json:"favorite"`
 	KeepBackups   int    `json:"keep_backups"` // Max local safety backups to keep
 	LastSyncedVer int    `json:"last_synced_ver"`
 	LastLocalHash string `json:"last_local_hash"`

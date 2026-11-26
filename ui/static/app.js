@@ -374,7 +374,8 @@ function renderGameList() {
     document.getElementById("gameDetail").classList.remove("hidden");
   }
 
-  for (const g of games) {
+  const sortedGames = [...games].sort((a, b) => (b.favorite ? 1 : 0) - (a.favorite ? 1 : 0));
+  for (const g of sortedGames) {
     if (q && !g.name.toLowerCase().includes(q) && !g.remote_folder.toLowerCase().includes(q)) continue;
     const st = state.statuses[g.id];
     const stCode = st?.state || "not_synced";
@@ -395,7 +396,7 @@ function renderGameList() {
       <div class="game-item-left">
         <div class="game-art-sm" style="background:${art.g};overflow:hidden">${thumb}</div>
         <div>
-          <div class="game-item-name">${escapeHtml(g.name)}</div>
+          <div class="game-item-name">${g.favorite ? "★ " : ""}${escapeHtml(g.name)}</div>
           <div class="game-item-sub">${escapeHtml(g.remote_folder)} • v${st?.remote_version ?? g.last_synced_ver ?? 0}</div>
         </div>
       </div>
@@ -426,6 +427,8 @@ function renderDetail() {
     ? "var(--panel)"
     : `radial-gradient(circle at top left, ${art.glow}, transparent 55%), var(--panel)`;
   document.getElementById("detailName").textContent = g.name;
+  document.getElementById("btnPlayGame").classList.toggle("hidden", !g.steam_app_id);
+  document.getElementById("btnFavGame").textContent = g.favorite ? "★ В избранном" : "☆ Избранное";
   document.getElementById("detailStateBadge").textContent = stateLabel(st.state);
   document.getElementById("detailLocalPath").textContent = g.local_path;
   document.getElementById("detailRemoteFolder").textContent = g.remote_folder;
@@ -529,6 +532,7 @@ window.closeModals = () => {
   document.getElementById("modalSettings").classList.add("hidden");
   document.getElementById("modalShare").classList.add("hidden");
   document.getElementById("modalJoin").classList.add("hidden");
+  document.getElementById("modalHistory").classList.add("hidden");
 };
 
 function openAddGameModal(preselectPreset = null) {
@@ -714,6 +718,83 @@ document.getElementById("btnShareWorld").onclick = async () => {
   }
 };
 document.getElementById("chkShareSecrets").onchange = generateShareCode;
+document.getElementById("btnPlayGame").onclick = async () => {
+  const id = state.selectedGameId;
+  if (!id) return;
+  try {
+    await api(`/api/games/${encodeURIComponent(id)}/launch`, "POST");
+    toast("Запуск игры через Steam...");
+  } catch (e) {
+    toast(e.message, true);
+  }
+};
+
+document.getElementById("btnFavGame").onclick = async () => {
+  const id = state.selectedGameId;
+  const g = state.config?.games.find((x) => x.id === id);
+  if (!g) return;
+  await api(`/api/games/${encodeURIComponent(id)}`, "PATCH", { favorite: !g.favorite });
+  await loadConfig();
+  renderDetail();
+};
+
+document.getElementById("btnOpenHistory").onclick = () => {
+  const id = state.selectedGameId;
+  const g = state.config?.games.find((x) => x.id === id);
+  const st = state.statuses[id];
+  if (!g || !st) return;
+  document.getElementById("historyModalTitle").textContent = `История — ${g.remote_folder}`;
+  const box = document.getElementById("historyModalList");
+  const versions = st.versions || [];
+  if (versions.length === 0) {
+    box.innerHTML = `<div class="muted">Пока нет загруженных версий.</div>`;
+  } else {
+    box.innerHTML = versions.map((v, idx) => `
+      <div class="hist-card">
+        <div>
+          <div style="font-weight:700">#v${v.version} • ${escapeHtml(v.author)}</div>
+          <div class="muted" style="font-size:11.5px">${escapeHtml(v.timestamp)} • ${(v.zip_size / (1024 * 1024)).toFixed(2)} МБ${v.note ? " • " + escapeHtml(v.note) : ""}</div>
+        </div>
+        ${idx === 0
+          ? `<span class="hist-pill-cur">Текущая версия</span>`
+          : `<button class="btn btn-secondary btn-xs" onclick="rollbackVersion(${v.version}); closeModals();">Восстановить</button>`}
+      </div>
+    `).join("");
+  }
+  document.getElementById("modalHistory").classList.remove("hidden");
+};
+
+document.getElementById("btnLanPopover").onclick = async (e) => {
+  e.stopPropagation();
+  const pop = document.getElementById("lanPopover");
+  pop.classList.toggle("hidden");
+  if (!pop.classList.contains("hidden")) {
+    const info = await api("/api/lan/info");
+    const ip = info.ips && info.ips.length > 0 ? `http://${info.ips[0]}:${info.port}` : `127.0.0.1:${info.port}`;
+    document.getElementById("lanPopIp").value = ip;
+    const btn = document.getElementById("btnToggleLanHost");
+    btn.textContent = info.host_enabled ? "Отключить LAN Sync" : "Включить LAN Sync";
+    btn.className = info.host_enabled ? "btn btn-danger-ghost btn-sm" : "btn btn-primary btn-sm";
+    btn.dataset.enabled = info.host_enabled ? "1" : "0";
+  }
+};
+document.getElementById("lanPopover").onclick = (e) => e.stopPropagation();
+document.addEventListener("click", () => document.getElementById("lanPopover")?.classList.add("hidden"));
+document.getElementById("btnCopyLanIp").onclick = async () => {
+  await navigator.clipboard.writeText(document.getElementById("lanPopIp").value);
+  toast("LAN/VPN адрес скопирован!");
+};
+document.getElementById("btnToggleLanHost").onclick = async () => {
+  const btn = document.getElementById("btnToggleLanHost");
+  const next = btn.dataset.enabled !== "1";
+  const info = await api("/api/lan/toggle", "POST", { enabled: next });
+  btn.textContent = info.host_enabled ? "Отключить LAN Sync" : "Включить LAN Sync";
+  btn.className = info.host_enabled ? "btn btn-danger-ghost btn-sm" : "btn btn-primary btn-sm";
+  btn.dataset.enabled = info.host_enabled ? "1" : "0";
+  await loadConfig();
+  toast(info.host_enabled ? "LAN Sync сервер запущен!" : "LAN Sync сервер остановлен");
+};
+
 document.getElementById("btnCopyShareCode").onclick = async () => {
   const txt = document.getElementById("shareCodeText").value;
   await navigator.clipboard.writeText(txt);

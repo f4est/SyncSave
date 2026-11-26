@@ -35,6 +35,20 @@
           </svg>
           <span id="playerNameLabel">Player</span>
         </div>
+        <div class="lan-popover-wrap">
+          <button id="btnLanPopover" class="btn btn-secondary btn-sm" title="LAN / VPN Sync">
+            🌐 LAN Sync
+          </button>
+          <div id="lanPopover" class="lan-popover hidden">
+            <div class="lan-pop-title">LAN / Radmin / ZeroTier Sync</div>
+            <div class="muted" style="font-size:11.5px;margin-bottom:8px">Раздавайте сохранения друзьям напрямую по локальной сети или VPN.</div>
+            <div class="input-row" style="margin-bottom:8px">
+              <input id="lanPopIp" type="text" class="input" readonly style="font-family:Consolas,monospace;font-size:12px" />
+              <button id="btnCopyLanIp" class="btn btn-secondary btn-xs" type="button">Копировать</button>
+            </div>
+            <button id="btnToggleLanHost" class="btn btn-primary btn-sm" style="width:100%;justify-content:center" type="button">Включить LAN Sync</button>
+          </div>
+        </div>
         <button id="btnJoinCode" class="btn btn-primary btn-sm" title="Присоединиться к миру друга по коду">
           🔗 Войти по коду
         </button>
@@ -118,6 +132,11 @@
                   <div class="world-title-row">
                     <h1 id="detailName">Game Name</h1>
                     <span id="detailStateBadge" class="status-badge">Synced</span>
+                  </div>
+                  <div class="world-quick-btns">
+                    <button id="btnPlayGame" class="btn btn-accent btn-xs hidden">▶ Играть</button>
+                    <button id="btnFavGame" class="btn btn-secondary btn-xs">☆ Избранное</button>
+                    <button id="btnOpenHistory" class="btn btn-secondary btn-xs">🕒 История</button>
                   </div>
                   <div class="world-meta">
                     <span id="detailLocalPath" class="mono-path" title="Локальная папка сохранений"></span>
@@ -599,6 +618,21 @@
       <div class="modal-footer">
         <button class="btn btn-ghost" onclick="closeModals()">Отмена</button>
         <button id="btnConfirmJoin" class="btn btn-primary">Присоединиться</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Version History Modal (SaveSync style) -->
+  <div id="modalHistory" class="modal hidden">
+    <div class="modal-backdrop" onclick="closeModals()"></div>
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 id="historyModalTitle">История версий</h3>
+        <button class="close-btn" onclick="closeModals()">✕</button>
+      </div>
+      <div id="historyModalList" class="modal-body" style="display:flex;flex-direction:column;gap:8px"></div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModals()">Закрыть</button>
       </div>
     </div>
   </div>

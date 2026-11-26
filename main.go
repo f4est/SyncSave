@@ -394,6 +394,33 @@ func buildMux(cfg *config.AppConfig, gdrive *storage.GDriveBackend, engine *sync
 		})
 	})
 
+	mux.HandleFunc("/api/lan/toggle", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		var req struct {
+			Enabled bool `json:"enabled"`
+		}
+		_ = json.NewDecoder(r.Body).Decode(&req)
+		if err := cfg.Update(func(c *config.AppConfig) {
+			c.LAN.HostEnabled = req.Enabled
+			if req.Enabled && c.Backend != config.BackendLAN {
+				c.Backend = config.BackendLAN
+			}
+		}); err != nil {
+			writeErr(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		lanMgr.SyncState()
+		snap := cfg.Snapshot()
+		writeJSON(w, http.StatusOK, map[string]any{
+			"host_enabled": snap.LAN.HostEnabled,
+			"port":         snap.LAN.Port,
+			"ips":          lan.LocalIPs(),
+		})
+	})
+
 	mux.HandleFunc("/api/join", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
@@ -633,6 +660,7 @@ func buildMux(cfg *config.AppConfig, gdrive *storage.GDriveBackend, engine *sync
 		case action == "" && r.Method == http.MethodPatch:
 			var req struct {
 				AutoSync    *bool `json:"auto_sync"`
+				Favorite    *bool `json:"favorite"`
 				KeepBackups *int  `json:"keep_backups"`
 			}
 			if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -645,6 +673,9 @@ func buildMux(cfg *config.AppConfig, gdrive *storage.GDriveBackend, engine *sync
 						if req.AutoSync != nil {
 							c.Games[i].AutoSync = *req.AutoSync
 						}
+						if req.Favorite != nil {
+							c.Games[i].Favorite = *req.Favorite
+						}
 						if req.KeepBackups != nil && *req.KeepBackups > 0 {
 							c.Games[i].KeepBackups = *req.KeepBackups
 						}
@@ -654,6 +685,22 @@ func buildMux(cfg *config.AppConfig, gdrive *storage.GDriveBackend, engine *sync
 				writeErr(w, http.StatusInternalServerError, err.Error())
 				return
 			}
+			writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
+
+		case action == "launch" && r.Method == http.MethodPost:
+			snap := cfg.Snapshot()
+			var appID string
+			for _, g := range snap.Games {
+				if g.ID == id {
+					appID = g.SteamAppID
+					break
+				}
+			}
+			if appID == "" {
+				writeErr(w, http.StatusBadRequest, "у этой игры нет Steam AppID для запуска")
+				return
+			}
+			_ = exec.Command("rundll32", "url.dll,FileProtocolHandler", "steam://rungameid/"+appID).Start()
 			writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
 
 		case action == "" && r.Method == http.MethodDelete:
