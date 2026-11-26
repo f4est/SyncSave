@@ -93,10 +93,16 @@ func (e *Engine) notify(title, msg string) {
 
 func (e *Engine) Backend() storage.Backend {
 	snap := e.cfg.Snapshot()
-	if snap.Backend == config.BackendLocal {
+	switch snap.Backend {
+	case config.BackendLocal:
 		return storage.NewLocalBackend(snap.LocalSyncDir)
+	case config.BackendWebDAV:
+		return storage.NewWebDAVBackend(snap.WebDAV.URL, snap.WebDAV.Username, snap.WebDAV.Password, snap.WebDAV.BasePath)
+	case config.BackendCustom:
+		return storage.NewCustomCmdBackend(snap.LocalSyncDir, snap.CustomSync.PullCmd, snap.CustomSync.PushCmd)
+	default:
+		return e.gdrive
 	}
-	return e.gdrive
 }
 
 func (e *Engine) AddLog(level, game, msg string) {

@@ -162,6 +162,49 @@ function stateLabel(code) {
   return t("state_" + code) || code;
 }
 
+const GAME_ART = {
+  valheim: { g: "linear-gradient(135deg,#2563eb,#0f172a)", icon: "⚔️", glow: "rgba(37,99,235,0.22)" },
+  terraria: { g: "linear-gradient(135deg,#10b981,#065f46)", icon: "🌳", glow: "rgba(16,185,129,0.22)" },
+  palworld: { g: "linear-gradient(135deg,#06b6d4,#3b82f6)", icon: "🐾", glow: "rgba(6,182,212,0.22)" },
+  minecraft: { g: "linear-gradient(135deg,#22c55e,#78350f)", icon: "🧱", glow: "rgba(34,197,94,0.20)" },
+  stardew: { g: "linear-gradient(135deg,#f59e0b,#10b981)", icon: "🌾", glow: "rgba(245,158,11,0.20)" },
+  factorio: { g: "linear-gradient(135deg,#ea580c,#78350f)", icon: "⚙️", glow: "rgba(234,88,12,0.22)" },
+  "7 days": { g: "linear-gradient(135deg,#dc2626,#1f2937)", icon: "🧟", glow: "rgba(220,38,38,0.22)" },
+  raft: { g: "linear-gradient(135deg,#0284c7,#14b8a6)", icon: "⛵", glow: "rgba(2,132,199,0.22)" },
+  forest: { g: "linear-gradient(135deg,#15803d,#1e293b)", icon: "🌲", glow: "rgba(21,128,61,0.22)" },
+  zomboid: { g: "linear-gradient(135deg,#991b1b,#111827)", icon: "🪓", glow: "rgba(153,27,27,0.22)" },
+  starve: { g: "linear-gradient(135deg,#7c3aed,#1e1b4b)", icon: "🔥", glow: "rgba(124,58,237,0.22)" },
+  satisfactory: { g: "linear-gradient(135deg,#f97316,#1e293b)", icon: "🏭", glow: "rgba(249,115,22,0.22)" },
+  rising: { g: "linear-gradient(135deg,#be123c,#31102f)", icon: "🦇", glow: "rgba(190,18,60,0.22)" },
+  grounded: { g: "linear-gradient(135deg,#84cc16,#0d9488)", icon: "🐜", glow: "rgba(132,204,22,0.20)" },
+  core: { g: "linear-gradient(135deg,#6366f1,#0ea5e9)", icon: "💎", glow: "rgba(99,102,241,0.22)" },
+  astroneer: { g: "linear-gradient(135deg,#38bdf8,#6366f1)", icon: "🚀", glow: "rgba(56,189,248,0.22)" },
+  deep: { g: "linear-gradient(135deg,#eab308,#713f12)", icon: "⛏️", glow: "rgba(234,179,8,0.20)" },
+  vintage: { g: "linear-gradient(135deg,#d97706,#451a03)", icon: "🏺", glow: "rgba(217,119,6,0.20)" },
+  enshrouded: { g: "linear-gradient(135deg,#0ea5e9,#1e1b4b)", icon: "🛡️", glow: "rgba(14,165,233,0.22)" },
+  baldur: { g: "linear-gradient(135deg,#b45309,#450a0a)", icon: "🐉", glow: "rgba(180,83,9,0.22)" },
+  divinity: { g: "linear-gradient(135deg,#7c3aed,#9f1239)", icon: "✨", glow: "rgba(124,58,237,0.22)" },
+  subnautica: { g: "linear-gradient(135deg,#06b6d4,#0f172a)", icon: "🌊", glow: "rgba(6,182,212,0.22)" },
+};
+
+const PALETTES = [
+  { g: "linear-gradient(135deg,#3b82f6,#8b5cf6)", glow: "rgba(59,130,246,0.20)" },
+  { g: "linear-gradient(135deg,#10b981,#06b6d4)", glow: "rgba(16,185,129,0.20)" },
+  { g: "linear-gradient(135deg,#f43f5e,#fb923c)", glow: "rgba(244,63,94,0.20)" },
+  { g: "linear-gradient(135deg,#8b5cf6,#ec4899)", glow: "rgba(139,92,246,0.20)" },
+];
+
+function getGameArt(name) {
+  const lower = String(name || "").toLowerCase();
+  for (const [key, val] of Object.entries(GAME_ART)) {
+    if (lower.includes(key)) return val;
+  }
+  let hash = 0;
+  for (let i = 0; i < lower.length; i++) hash = (hash * 31 + lower.charCodeAt(i)) | 0;
+  const p = PALETTES[Math.abs(hash) % PALETTES.length];
+  return { g: p.g, glow: p.glow, icon: (name || "G").trim().slice(0, 2).toUpperCase() };
+}
+
 async function api(path, method = "GET", body = null) {
   const opts = { method, headers: {} };
   if (body !== null) {
@@ -261,10 +304,14 @@ function renderGameList() {
       renderGameList();
       renderDetail();
     };
+    const art = getGameArt(g.name);
     div.innerHTML = `
-      <div>
-        <div class="game-item-name">${escapeHtml(g.name)}</div>
-        <div class="game-item-sub">${escapeHtml(g.remote_folder)} • v${st?.remote_version ?? g.last_synced_ver ?? 0}</div>
+      <div class="game-item-left">
+        <div class="game-art-sm" style="background:${art.g}">${art.icon}</div>
+        <div>
+          <div class="game-item-name">${escapeHtml(g.name)}</div>
+          <div class="game-item-sub">${escapeHtml(g.remote_folder)} • v${st?.remote_version ?? g.last_synced_ver ?? 0}</div>
+        </div>
       </div>
       <span class="status-dot st-${stCode}" title="${stateLabel(stCode)}"></span>
     `;
@@ -279,6 +326,11 @@ function renderDetail() {
   if (!g) return;
   const st = state.statuses[id] || { game: g, state: "not_synced", versions: [] };
 
+  const art = getGameArt(g.name);
+  const iconEl = document.getElementById("detailGameIcon");
+  iconEl.style.background = art.g;
+  iconEl.textContent = art.icon;
+  document.getElementById("worldCard").style.background = `radial-gradient(circle at top left, ${art.glow}, transparent 55%), var(--panel)`;
   document.getElementById("detailName").textContent = g.name;
   document.getElementById("detailStateBadge").textContent = stateLabel(st.state);
   document.getElementById("detailLocalPath").textContent = g.local_path;
@@ -389,7 +441,14 @@ function openAddGameModal() {
   for (const p of state.presets) {
     const btn = document.createElement("button");
     btn.className = "preset-chip";
-    btn.innerHTML = `${escapeHtml(p.name)}${p.installed ? `<span class="installed">✓ Найдена на ПК</span>` : ""}`;
+    const art = getGameArt(p.name);
+    btn.innerHTML = `
+      <div class="game-art-sm" style="background:${art.g};width:28px;height:28px;font-size:12px">${art.icon}</div>
+      <div>
+        <div>${escapeHtml(p.name)}</div>
+        ${p.installed ? `<span class="installed">✓ Найдена на ПК</span>` : ""}
+      </div>
+    `;
     btn.onclick = () => {
       document.querySelectorAll(".preset-chip").forEach((c) => c.classList.remove("selected"));
       btn.classList.add("selected");
@@ -415,6 +474,13 @@ function openSettingsModal() {
   document.getElementById("setClientSecret").value = c.gdrive?.client_secret || "";
   document.getElementById("setFolderID").value = c.gdrive?.folder_id || "";
   document.getElementById("setLocalSyncDir").value = c.local_sync_dir || "";
+  document.getElementById("setCustomSyncDir").value = c.local_sync_dir || "";
+  document.getElementById("setWebdavURL").value = c.webdav?.url || "";
+  document.getElementById("setWebdavUser").value = c.webdav?.username || "";
+  document.getElementById("setWebdavPass").value = c.webdav?.password || "";
+  document.getElementById("setWebdavBasePath").value = c.webdav?.base_path || "SyncSave";
+  document.getElementById("setCustomPullCmd").value = c.custom_sync?.pull_cmd || "";
+  document.getElementById("setCustomPushCmd").value = c.custom_sync?.push_cmd || "";
   document.getElementById("setTheme").value = c.theme || "dark";
   document.getElementById("setLanguage").value = c.language || "ru";
   document.getElementById("setAutostart").checked = !!c.autostart;
@@ -436,8 +502,20 @@ function openSettingsModal() {
 function toggleBackendBoxes() {
   const v = document.getElementById("setBackend").value;
   document.getElementById("gdriveSettingsBox").classList.toggle("hidden", v !== "gdrive");
+  document.getElementById("webdavSettingsBox").classList.toggle("hidden", v !== "webdav");
   document.getElementById("localSettingsBox").classList.toggle("hidden", v !== "local");
+  document.getElementById("customSettingsBox").classList.toggle("hidden", v !== "custom");
 }
+
+window.fillWebDAVPreset = (kind) => {
+  if (kind === "yandex") {
+    document.getElementById("setWebdavURL").value = "https://webdav.yandex.ru";
+    document.getElementById("setWebdavBasePath").value = "SyncSave";
+  } else if (kind === "nextcloud") {
+    document.getElementById("setWebdavURL").value = "https://your-server.com/remote.php/dav/files/USERNAME/";
+    document.getElementById("setWebdavBasePath").value = "SyncSave";
+  }
+};
 
 // Event bindings
 document.getElementById("btnAddGame").onclick = openAddGameModal;
@@ -510,6 +588,11 @@ document.getElementById("btnBrowseSyncDir").onclick = async () => {
   if (res.path) document.getElementById("setLocalSyncDir").value = res.path;
 };
 
+document.getElementById("btnBrowseCustomDir").onclick = async () => {
+  const res = await api("/api/browse-folder", "POST");
+  if (res.path) document.getElementById("setCustomSyncDir").value = res.path;
+};
+
 document.getElementById("btnPickRemoteWorld").onclick = async () => {
   try {
     const worlds = await api("/api/remote-worlds");
@@ -547,12 +630,22 @@ document.getElementById("btnSaveNewGame").onclick = async () => {
 
 document.getElementById("btnSaveSettings").onclick = async () => {
   try {
+    const backendVal = document.getElementById("setBackend").value;
+    const syncDirVal = backendVal === "custom"
+      ? document.getElementById("setCustomSyncDir").value.trim()
+      : document.getElementById("setLocalSyncDir").value.trim();
     await api("/api/config", "POST", {
       player_name: document.getElementById("setPlayerName").value.trim(),
       theme: document.getElementById("setTheme").value,
       language: document.getElementById("setLanguage").value,
-      backend: document.getElementById("setBackend").value,
-      local_sync_dir: document.getElementById("setLocalSyncDir").value.trim(),
+      backend: backendVal,
+      local_sync_dir: syncDirVal,
+      webdav_url: document.getElementById("setWebdavURL").value.trim(),
+      webdav_username: document.getElementById("setWebdavUser").value.trim(),
+      webdav_password: document.getElementById("setWebdavPass").value,
+      webdav_base_path: document.getElementById("setWebdavBasePath").value.trim(),
+      custom_pull_cmd: document.getElementById("setCustomPullCmd").value.trim(),
+      custom_push_cmd: document.getElementById("setCustomPushCmd").value.trim(),
       minimize_to_tray: document.getElementById("setMinimizeToTray").checked,
       start_minimized: document.getElementById("setStartMinimized").checked,
       autostart: document.getElementById("setAutostart").checked,

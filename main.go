@@ -236,6 +236,12 @@ func buildMux(cfg *config.AppConfig, gdrive *storage.GDriveBackend, engine *sync
 				GDriveClientID     string `json:"gdrive_client_id"`
 				GDriveClientSecret string `json:"gdrive_client_secret"`
 				GDriveFolderID     string `json:"gdrive_folder_id"`
+				WebDAVURL          string `json:"webdav_url"`
+				WebDAVUsername     string `json:"webdav_username"`
+				WebDAVPassword     string `json:"webdav_password"`
+				WebDAVBasePath     string `json:"webdav_base_path"`
+				CustomPullCmd      string `json:"custom_pull_cmd"`
+				CustomPushCmd      string `json:"custom_push_cmd"`
 			}
 			if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 				writeErr(w, http.StatusBadRequest, err.Error())
@@ -255,9 +261,14 @@ func buildMux(cfg *config.AppConfig, gdrive *storage.GDriveBackend, engine *sync
 				if req.Theme != "" {
 					c.Theme = req.Theme
 				}
-				if req.Backend == string(config.BackendLocal) {
+				switch req.Backend {
+				case string(config.BackendLocal):
 					c.Backend = config.BackendLocal
-				} else {
+				case string(config.BackendWebDAV):
+					c.Backend = config.BackendWebDAV
+				case string(config.BackendCustom):
+					c.Backend = config.BackendCustom
+				default:
 					c.Backend = config.BackendGDrive
 				}
 				if req.LocalSyncDir != "" {
@@ -283,6 +294,12 @@ func buildMux(cfg *config.AppConfig, gdrive *storage.GDriveBackend, engine *sync
 				c.GDrive.ClientID = req.GDriveClientID
 				c.GDrive.ClientSecret = req.GDriveClientSecret
 				c.GDrive.FolderID = req.GDriveFolderID
+				c.WebDAV.URL = req.WebDAVURL
+				c.WebDAV.Username = req.WebDAVUsername
+				c.WebDAV.Password = req.WebDAVPassword
+				c.WebDAV.BasePath = req.WebDAVBasePath
+				c.CustomSync.PullCmd = req.CustomPullCmd
+				c.CustomSync.PushCmd = req.CustomPushCmd
 			})
 			if err != nil {
 				writeErr(w, http.StatusInternalServerError, err.Error())
@@ -311,8 +328,13 @@ func buildMux(cfg *config.AppConfig, gdrive *storage.GDriveBackend, engine *sync
 			return
 		}
 		label := "Google Drive: Подключено"
-		if b.Name() == "local" {
+		switch b.Name() {
+		case "local":
 			label = "Локальная папка: Готово"
+		case "webdav":
+			label = "WebDAV: Подключено"
+		case "custom":
+			label = "Своя команда: Готово"
 		}
 		writeJSON(w, http.StatusOK, map[string]string{"label": label})
 	})

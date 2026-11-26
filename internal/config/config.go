@@ -13,8 +13,24 @@ type BackendType string
 
 const (
 	BackendGDrive BackendType = "gdrive"
+	BackendWebDAV BackendType = "webdav"
 	BackendLocal  BackendType = "local"
+	BackendCustom BackendType = "custom"
 )
+
+// WebDAVConfig holds WebDAV server settings (Yandex.Disk, Nextcloud, NAS, etc.).
+type WebDAVConfig struct {
+	URL      string `json:"url"`
+	Username string `json:"username"`
+	Password string `json:"password"`
+	BasePath string `json:"base_path"`
+}
+
+// CustomSyncConfig allows users to integrate rclone, git, rsync, or any CLI tool.
+type CustomSyncConfig struct {
+	PullCmd string `json:"pull_cmd"`
+	PushCmd string `json:"push_cmd"`
+}
 
 // GameProfile represents a configured co-op game and its shared world.
 type GameProfile struct {
@@ -48,9 +64,11 @@ type AppConfig struct {
 	PlayerName         string        `json:"player_name"`
 	Language           string        `json:"language"` // "ru", "en", "uk"
 	Theme              string        `json:"theme"`    // "dark", "midnight", "emerald", "crimson", "light"
-	Backend            BackendType   `json:"backend"`
-	LocalSyncDir       string        `json:"local_sync_dir"`
-	GDrive             GDriveConfig  `json:"gdrive"`
+	Backend            BackendType      `json:"backend"`
+	LocalSyncDir       string           `json:"local_sync_dir"`
+	GDrive             GDriveConfig     `json:"gdrive"`
+	WebDAV             WebDAVConfig     `json:"webdav"`
+	CustomSync         CustomSyncConfig `json:"custom_sync"`
 	MinimizeToTray     bool          `json:"minimize_to_tray"`
 	StartMinimized     bool          `json:"start_minimized"`
 	Autostart          bool          `json:"autostart"`
@@ -186,6 +204,8 @@ func (c *AppConfig) Snapshot() *AppConfig {
 		Backend:            c.Backend,
 		LocalSyncDir:       c.LocalSyncDir,
 		GDrive:             c.GDrive,
+		WebDAV:             c.WebDAV,
+		CustomSync:         c.CustomSync,
 		MinimizeToTray:     c.MinimizeToTray,
 		StartMinimized:     c.StartMinimized,
 		Autostart:          c.Autostart,
