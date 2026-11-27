@@ -262,7 +262,8 @@ async function checkBackendPill() {
     text.textContent = res.label;
   } catch (e) {
     badge.className = "pill err";
-    text.textContent = state.config?.backend === "local" ? "Папка не настроена" : "Google Drive не подключен";
+    badge.title = e.message || "";
+    text.textContent = state.config?.backend === "local" ? "Папка не настроена" : ("Ошибка: " + (e.message || "Google Drive не подключен")).slice(0, 48);
   }
 }
 

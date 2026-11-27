@@ -37,7 +37,10 @@ jobs:
         run: |
           $ldflags = "-H windowsgui -s -w"
           if ($env:CID -and $env:CSEC) {
+            Write-Host "Injecting GOOGLE_CLIENT_ID (len=$($env:CID.Length)) and GOOGLE_CLIENT_SECRET (len=$($env:CSEC.Length))"
             $ldflags += " -X syncsave/internal/config.DefaultClientID=$($env:CID) -X syncsave/internal/config.DefaultClientSecret=$($env:CSEC)"
+          } else {
+            Write-Warning "GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET is empty!"
           }
           go build -trimpath -ldflags="$ldflags" -o SyncSave.exe .
           $hash = (Get-FileHash SyncSave.exe -Algorithm SHA256).Hash.ToLower()
