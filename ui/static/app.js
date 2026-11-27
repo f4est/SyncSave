@@ -236,7 +236,12 @@ async function init() {
   await Promise.all([loadConfig(), loadPresets(), loadLogs()]);
   await refreshAllStatuses();
   setInterval(loadLogs, 3000);
-  setInterval(refreshAllStatuses, 15000);
+}
+
+function restartUIRefreshTimer() {
+  clearInterval(window._uiRefreshTimer);
+  const sec = Math.max(3, parseInt(state.config?.ui_refresh_seconds, 10) || 10);
+  window._uiRefreshTimer = setInterval(refreshAllStatuses, sec * 1000);
 }
 
 async function loadConfig() {
@@ -247,6 +252,7 @@ async function loadConfig() {
   checkBackendPill();
   renderGameList();
   renderLibraryGrid();
+  restartUIRefreshTimer();
 }
 
 async function checkBackendPill() {
@@ -483,11 +489,22 @@ function renderDetail() {
     `;
     tbody.appendChild(tr);
   }
+  renderLogs();
 }
 
 function renderLogs() {
   const el = document.getElementById("activityLog");
   el.innerHTML = "";
+  const st = state.viewMode === "detail" && state.selectedGameId ? state.statuses[state.selectedGameId] : null;
+  const sharedEvents = st && Array.isArray(st.events) ? st.events : [];
+
+  for (const ev of sharedEvents) {
+    const div = document.createElement("div");
+    div.className = `log-item ${ev.level || "info"}`;
+    div.innerHTML = `<span class="log-time">${escapeHtml(ev.time)}</span><strong>[${escapeHtml(ev.player)}]</strong> ${escapeHtml(ev.message)}`;
+    el.appendChild(div);
+  }
+
   for (const l of state.logs) {
     const div = document.createElement("div");
     div.className = `log-item ${l.level}`;
@@ -632,6 +649,7 @@ function openSettingsModal() {
   document.getElementById("setPollMs").value = c.poll_interval_ms || 5000;
   document.getElementById("setDebounceSec").value = c.debounce_seconds || 8;
   document.getElementById("setKeepBackups").value = c.default_keep_backups || 5;
+  document.getElementById("setUIRefreshSec").value = c.ui_refresh_seconds || 10;
   document.getElementById("oauthEmailBadge").textContent = c.gdrive?.user_email ? `Подключен: ${c.gdrive.user_email}` : "Не авторизован";
   toggleBackendBoxes();
   document.getElementById("modalSettings").classList.remove("hidden");
@@ -976,6 +994,7 @@ document.getElementById("btnSaveSettings").onclick = async () => {
       auto_pull_on_start: document.getElementById("setAutoPullOnStart").checked,
       remote_poll_seconds: parseInt(document.getElementById("setRemotePollSec").value, 10) || 60,
       poll_interval_ms: parseInt(document.getElementById("setPollMs").value, 10) || 5000,
+      ui_refresh_seconds: parseInt(document.getElementById("setUIRefreshSec").value, 10) || 10,
       debounce_seconds: parseInt(document.getElementById("setDebounceSec").value, 10) || 8,
       default_keep_backups: parseInt(document.getElementById("setKeepBackups").value, 10) || 5,
       gdrive_client_id: document.getElementById("setClientID").value.trim(),

@@ -40,6 +40,7 @@ type GameStatus struct {
 	RemoteUpdated string                 `json:"remote_updated,omitempty"`
 	HostLock      *storage.HostLock      `json:"host_lock,omitempty"`
 	Versions      []storage.SaveVersion  `json:"versions"`
+	Events        []storage.WorldEvent   `json:"events,omitempty"`
 	Error         string                 `json:"error,omitempty"`
 }
 
@@ -202,6 +203,7 @@ func (e *Engine) GetGameStatus(ctx context.Context, id string) GameStatus {
 		st.RemoteUpdated = manifest.UpdatedAt
 		st.HostLock = manifest.ActiveHostLock
 		st.Versions = manifest.Versions
+		st.Events = manifest.Events
 	}
 
 	if localErr != nil {
@@ -333,6 +335,7 @@ func (e *Engine) Push(ctx context.Context, id, note string, force bool) (*storag
 	if len(manifest.Versions) > 50 {
 		manifest.Versions = manifest.Versions[:50]
 	}
+	appendWorldEvent(manifest, snap.PlayerName, "success", fmt.Sprintf("Загрузил(а) версию v%d%s", nextVer, noteSuffix(note)))
 
 	if err := b.PutManifest(ctx, g.RemoteFolder, manifest); err != nil {
 		e.AddLog("error", g.Name, "Ошибка обновления manifest: "+err.Error())
@@ -439,6 +442,11 @@ func (e *Engine) Pull(ctx context.Context, id string, targetVersion int, force b
 
 	e.AddLog("success", g.Name, fmt.Sprintf("Установлена версия v%d (от %s)", chosen.Version, chosen.Author))
 	e.notify("SyncSave — "+g.Name, fmt.Sprintf("Установлена версия v%d (от %s)", chosen.Version, chosen.Author))
+
+	// Record pull event in shared world manifest (best-effort)
+	player := e.cfg.Snapshot().PlayerName
+	appendWorldEvent(manifest, player, "info", fmt.Sprintf("Скачал(а) версию v%d", chosen.Version))
+	_ = b.PutManifest(ctx, g.RemoteFolder, manifest)
 	return chosen, nil
 }
 
@@ -470,11 +478,34 @@ func (e *Engine) SetHostLock(ctx context.Context, id string, acquire bool) error
 			AcquiredAt: time.Now().Format("2006-01-02 15:04:05"),
 		}
 		e.AddLog("info", g.Name, fmt.Sprintf("%s взял(а) роль хоста", snap.PlayerName))
+		appendWorldEvent(manifest, snap.PlayerName, "info", "Взял(а) роль хоста")
 	} else {
 		manifest.ActiveHostLock = nil
 		e.AddLog("info", g.Name, fmt.Sprintf("%s освободил(а) роль хоста", snap.PlayerName))
+		appendWorldEvent(manifest, snap.PlayerName, "info", "Освободил(а) роль хоста")
 	}
 	return b.PutManifest(ctx, g.RemoteFolder, manifest)
+}
+
+func appendWorldEvent(m *storage.WorldManifest, player, level, msg string) {
+	ev := storage.WorldEvent{
+		Time:    time.Now().Format("02.01 15:04:05"),
+		Player:  player,
+		Level:   level,
+		Message: msg,
+	}
+	m.Events = append([]storage.WorldEvent{ev}, m.Events...)
+	if len(m.Events) > 60 {
+		m.Events = m.Events[:60]
+	}
+}
+
+func noteSuffix(note string) string {
+	n := strings.TrimSpace(note)
+	if n == "" {
+		return ""
+	}
+	return " (" + n + ")"
 }
 
 func (e *Engine) createLocalBackup(g config.GameProfile) {

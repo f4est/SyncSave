@@ -25,6 +25,14 @@ type HostLock struct {
 	AcquiredAt string `json:"acquired_at"`
 }
 
+// WorldEvent represents a shared activity log entry visible to all co-op players.
+type WorldEvent struct {
+	Time    string `json:"time"`
+	Player  string `json:"player"`
+	Level   string `json:"level"` // info, success, warn
+	Message string `json:"message"`
+}
+
 // WorldManifest is stored in each game's remote folder as manifest.json.
 type WorldManifest struct {
 	GameName       string        `json:"game_name"`
@@ -33,6 +41,7 @@ type WorldManifest struct {
 	UpdatedBy      string        `json:"updated_by"`
 	ActiveHostLock *HostLock     `json:"active_host_lock,omitempty"`
 	Versions       []SaveVersion `json:"versions"`
+	Events         []WorldEvent  `json:"events,omitempty"`
 }
 
 // Backend abstracts online/shared save storage (Google Drive or Local Folder).

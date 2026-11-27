@@ -240,6 +240,7 @@ func buildMux(cfg *config.AppConfig, gdrive *storage.GDriveBackend, engine *sync
 				DebounceSeconds    int    `json:"debounce_seconds"`
 				DefaultKeepBackups int    `json:"default_keep_backups"`
 				PollIntervalMs     int    `json:"poll_interval_ms"`
+				UIRefreshSeconds   int    `json:"ui_refresh_seconds"`
 				GDriveClientID     string `json:"gdrive_client_id"`
 				GDriveClientSecret string `json:"gdrive_client_secret"`
 				GDriveFolderID     string `json:"gdrive_folder_id"`
@@ -319,6 +320,9 @@ func buildMux(cfg *config.AppConfig, gdrive *storage.GDriveBackend, engine *sync
 				}
 				if req.PollIntervalMs >= 2000 {
 					c.PollIntervalMs = req.PollIntervalMs
+				}
+				if req.UIRefreshSeconds >= 3 {
+					c.UIRefreshSeconds = req.UIRefreshSeconds
 				}
 				c.GDrive.ClientID = req.GDriveClientID
 				c.GDrive.ClientSecret = req.GDriveClientSecret

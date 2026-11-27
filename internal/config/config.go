@@ -121,6 +121,7 @@ type AppConfig struct {
 	DebounceSeconds    int           `json:"debounce_seconds"`
 	DefaultKeepBackups int           `json:"default_keep_backups"`
 	PollIntervalMs     int           `json:"poll_interval_ms"`
+	UIRefreshSeconds   int           `json:"ui_refresh_seconds"`
 	Games              []GameProfile `json:"games"`
 }
 
@@ -180,6 +181,7 @@ func DefaultConfig() *AppConfig {
 		DebounceSeconds:    8,
 		DefaultKeepBackups: 5,
 		PollIntervalMs:     5000,
+		UIRefreshSeconds:   10,
 		Games:              []GameProfile{},
 	}
 }
@@ -215,6 +217,9 @@ func Load() (*AppConfig, error) {
 	}
 	if cfg.RemotePollSeconds < 10 {
 		cfg.RemotePollSeconds = 60
+	}
+	if cfg.UIRefreshSeconds <= 0 {
+		cfg.UIRefreshSeconds = 10
 	}
 	if cfg.DefaultKeepBackups < 1 {
 		cfg.DefaultKeepBackups = 5
@@ -288,6 +293,7 @@ func (c *AppConfig) Snapshot() *AppConfig {
 		DebounceSeconds:    c.DebounceSeconds,
 		DefaultKeepBackups: c.DefaultKeepBackups,
 		PollIntervalMs:     c.PollIntervalMs,
+		UIRefreshSeconds:   c.UIRefreshSeconds,
 		Games:              games,
 	}
 }
