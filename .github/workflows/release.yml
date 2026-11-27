@@ -32,8 +32,14 @@ jobs:
           CGO_ENABLED: '0'
           GOOS: windows
           GOARCH: amd64
+          CID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          CSEC: ${{ secrets.GOOGLE_CLIENT_SECRET }}
         run: |
-          go build -trimpath -ldflags="-H windowsgui -s -w" -o SyncSave.exe .
+          $ldflags = "-H windowsgui -s -w"
+          if ($env:CID -and $env:CSEC) {
+            $ldflags += " -X 'syncsave/internal/config.DefaultClientID=$($env:CID)' -X 'syncsave/internal/config.DefaultClientSecret=$($env:CSEC)'"
+          }
+          go build -trimpath -ldflags="$ldflags" -o SyncSave.exe .
           $hash = (Get-FileHash SyncSave.exe -Algorithm SHA256).Hash.ToLower()
           "$hash  SyncSave.exe" | Out-File -Encoding ascii SyncSave.exe.sha256
 
