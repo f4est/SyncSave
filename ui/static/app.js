@@ -993,10 +993,6 @@ document.getElementById("btnSaveSettings").onclick = async () => {
 document.getElementById("btnGoogleLogin").onclick = async () => {
   const client_id = document.getElementById("setClientID").value.trim();
   const client_secret = document.getElementById("setClientSecret").value.trim();
-  if (!client_id || !client_secret) {
-    toast("Сначала введите Client ID и Client Secret", true);
-    return;
-  }
   try {
     toast("Откроется браузер для входа в Google...");
     const res = await api("/api/gdrive/oauth", "POST", { client_id, client_secret });

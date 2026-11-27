@@ -37,7 +37,7 @@ jobs:
         run: |
           $ldflags = "-H windowsgui -s -w"
           if ($env:CID -and $env:CSEC) {
-            $ldflags += " -X 'syncsave/internal/config.DefaultClientID=$($env:CID)' -X 'syncsave/internal/config.DefaultClientSecret=$($env:CSEC)'"
+            $ldflags += " -X syncsave/internal/config.DefaultClientID=$($env:CID) -X syncsave/internal/config.DefaultClientSecret=$($env:CSEC)"
           }
           go build -trimpath -ldflags="$ldflags" -o SyncSave.exe .
           $hash = (Get-FileHash SyncSave.exe -Algorithm SHA256).Hash.ToLower()

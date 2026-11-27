@@ -56,8 +56,16 @@ func (g *GDriveBackend) Name() string {
 // StartOAuthFlow launches a temporary loopback HTTP server, opens the user's browser
 // to Google's consent screen, and stores the resulting access + refresh tokens.
 func (g *GDriveBackend) StartOAuthFlow(ctx context.Context, clientID, clientSecret string) (string, error) {
-	if strings.TrimSpace(clientID) == "" || strings.TrimSpace(clientSecret) == "" {
-		return "", fmt.Errorf("Client ID и Client Secret обязательны")
+	clientID = strings.TrimSpace(clientID)
+	clientSecret = strings.TrimSpace(clientSecret)
+	if clientID == "" {
+		clientID = config.DefaultClientID
+	}
+	if clientSecret == "" {
+		clientSecret = config.DefaultClientSecret
+	}
+	if clientID == "" || clientSecret == "" {
+		return "", fmt.Errorf("Client ID и Client Secret не настроены")
 	}
 
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
@@ -211,9 +219,17 @@ func (g *GDriveBackend) ensureToken(ctx context.Context) (string, error) {
 		return "", fmt.Errorf("токен истёк и отсутствует refresh_token — переподключите Google Drive")
 	}
 
+	cid := strings.TrimSpace(snap.ClientID)
+	csec := strings.TrimSpace(snap.ClientSecret)
+	if cid == "" {
+		cid = config.DefaultClientID
+	}
+	if csec == "" {
+		csec = config.DefaultClientSecret
+	}
 	form := url.Values{
-		"client_id":     {snap.ClientID},
-		"client_secret": {snap.ClientSecret},
+		"client_id":     {cid},
+		"client_secret": {csec},
 		"refresh_token": {snap.RefreshToken},
 		"grant_type":    {"refresh_token"},
 	}
